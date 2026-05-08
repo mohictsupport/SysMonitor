@@ -10,6 +10,7 @@ import { setupNavigationHandler, isElectron } from "@/lib/electron-notifications
 import { Toaster } from "@/components/ui/sonner";
 import { useInactivityLogout } from "@/lib/use-inactivity-logout";
 import { UpdateNotification } from "@/components/UpdateNotification";
+import { AppFooter } from "@/components/AppFooter";
 
 import "../styles.css";
 
@@ -59,7 +60,12 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Outlet />
+      <div className="flex min-h-screen flex-col">
+        <div className="flex-1">
+          <Outlet />
+        </div>
+        <AppFooter />
+      </div>
       <Toaster />
       <UpdateNotification />
     </QueryClientProvider>
