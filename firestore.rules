@@ -1,0 +1,73 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if user is authenticated
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    // Helper function to check if user owns the document
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    // Helper function to check if user owns existing resource
+    function ownsResource() {
+      return isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+    
+    // Helper function to check if user owns new resource being created
+    function ownsNewResource() {
+      return isSignedIn() && request.resource.data.userId == request.auth.uid;
+    }
+    
+    // Users collection - each user can only read/write their own data
+    match /users/{userId} {
+      // User preferences subcollection
+      match /preferences/{document=**} {
+        allow read, write: if isOwner(userId);
+      }
+      
+      // Any other user-specific data
+      match /{document=**} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+    
+    // Uptime history collection - users can only read/write their own history
+    match /uptime_history/{documentId} {
+      allow create: if ownsNewResource();
+      allow read, update, delete: if ownsResource();
+    }
+    
+    // Provisioning collection - users can only read/write their own provisioning data
+    match /provisioning/{documentId} {
+      allow create: if ownsNewResource();
+      allow read, update, delete: if ownsResource();
+    }
+
+    // Current stats - 24h uptime data from Netlify monitor (public read, server only write)
+    match /current_stats/{documentId} {
+      allow read: if true; // Public read - available on dashboard without auth
+      allow write: if false; // Only server (Admin SDK) can write
+    }
+
+    // Daily stats - historical report data from Netlify monitor (public read, server only write)
+    match /daily_stats/{documentId} {
+      allow read: if true; // Public read - available on reports page without auth
+      allow write: if false; // Only server (Admin SDK) can write
+    }
+
+    // Access key - stores password for protected actions (public read for auth checks)
+    match /access_key/{documentId} {
+      allow read: if true; // Public read - needed for access code verification
+      allow write: if false; // Only server (Admin SDK) or manual console edit can write
+    }
+
+    // Deny all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

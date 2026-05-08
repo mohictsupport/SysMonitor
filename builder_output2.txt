@@ -1,0 +1,33 @@
+  • electron-builder  version=26.8.1 os=10.0.26100
+  • loaded configuration  file=package.json ("build" field)
+  • packageManager not detected by file, falling back to environment detection  resolvedPackageManager=npm detected=C:\Users\matar\Documents\GitHub\site-guardian-pro
+  • executing @electron/rebuild  electronVersion=41.3.0 arch=x64 buildFromSource=false workspaceRoot=C:\Users\matar\Documents\GitHub\site-guardian-pro projectDir=./ appDir=./
+  • installing native dependencies  arch=x64
+  • completed installing native dependencies
+  • packaging       platform=win32 arch=x64 electron=41.3.0 appOutDir=dist-electron\win-unpacked
+  • downloading     url=https://github.com/electron/electron/releases/download/v41.3.0/electron-v41.3.0-win32-x64.zip size=143 MB parts=8
+  • retrying        attempt=1
+  • retrying        attempt=1
+  • retrying        attempt=1
+  • retrying        attempt=1
+  • downloaded      url=https://github.com/electron/electron/releases/download/v41.3.0/electron-v41.3.0-win32-x64.zip duration=4m21.115s
+  ⨯ zip: not a valid zip file
+github.com/develar/app-builder/pkg/archive/zipx.(*Extractor).extractAndWriteFile
+	/Users/runner/work/app-builder/app-builder/pkg/archive/zipx/unzip.go:234
+github.com/develar/app-builder/pkg/archive/zipx.Unzip.func1.1
+	/Users/runner/work/app-builder/app-builder/pkg/archive/zipx/unzip.go:104
+github.com/develar/app-builder/pkg/util.MapAsyncConcurrency.func2
+	/Users/runner/work/app-builder/app-builder/pkg/util/async.go:68
+runtime.goexit
+	/Users/runner/hostedtoolcache/go/1.21.13/arm64/src/runtime/asm_amd64.s:1650  
+  ⨯ C:\Users\matar\Documents\GitHub\site-guardian-pro\node_modules\app-builder-bin\win\x64\app-builder.exe process failed ERR_ELECTRON_BUILDER_CANNOT_EXECUTE
+Exit code:
+1  failedTask=build stackTrace=Error: C:\Users\matar\Documents\GitHub\site-guardian-pro\node_modules\app-builder-bin\win\x64\app-builder.exe process failed ERR_ELECTRON_BUILDER_CANNOT_EXECUTE
+Exit code:
+1
+    at ChildProcess.<anonymous> (C:\Users\matar\Documents\GitHub\site-guardian-pro\node_modules\builder-util\src\util.ts:272:14)
+    at Object.onceWrapper (node:events:633:26)
+    at ChildProcess.emit (node:events:518:28)
+    at ChildProcess.cp.emit (C:\Users\matar\Documents\GitHub\site-guardian-pro\node_modules\cross-spawn\lib\enoent.js:34:29)
+    at maybeClose (node:internal/child_process:1101:16)
+    at Process.ChildProcess._handle.onexit (node:internal/child_process:304:5)
