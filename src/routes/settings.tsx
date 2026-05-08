@@ -9,7 +9,7 @@ import {
   testAlertSound,
   ensureAudioContext,
 } from "@/lib/alert-sounds";
-import { areNotificationsEnabled, setNotificationsEnabled } from "@/lib/electron-notifications";
+import { areNotificationsEnabled, setNotificationsEnabled, isElectron } from "@/lib/electron-notifications";
 import { NetBirdApiSettings } from "@/components/NetBirdApiSettings";
 import { clearAllSites } from "@/lib/use-sites";
 import { TelegramSettings } from "@/components/TelegramSettings";
@@ -63,6 +63,14 @@ function SettingsPage() {
     success: number;
     failed: number;
     message: string;
+  } | null>(null);
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
+  const [updateStatus, setUpdateStatus] = useState<{
+    checking: boolean;
+    available: boolean;
+    downloaded: boolean;
+    error: string | null;
+    version: string | null;
   } | null>(null);
   const hasMounted = useRef(false);
 
@@ -315,6 +323,72 @@ function SettingsPage() {
     queryClient.invalidateQueries({ queryKey: ["daily_stats"] });
   };
 
+  const handleCheckForUpdates = async () => {
+    if (!isElectron()) {
+      toast.error("Updates are only available in the desktop app");
+      return;
+    }
+
+    if (!window.electronAPI?.checkForUpdates) {
+      toast.error("Update checker not available");
+      return;
+    }
+
+    setIsCheckingUpdate(true);
+    setUpdateStatus(null);
+
+    try {
+      // Subscribe to status updates
+      const unsubscribe = window.electronAPI.onUpdateStatus?.((status) => {
+        setUpdateStatus(status);
+        
+        if (status.downloaded) {
+          toast.success(`Version ${status.version} is ready to install`);
+          setIsCheckingUpdate(false);
+        } else if (status.error) {
+          toast.error(`Update error: ${status.error}`);
+          setIsCheckingUpdate(false);
+        } else if (status.available && !status.checking) {
+          toast.info(`Update available: ${status.version}`);
+        }
+      });
+
+      // Trigger the check
+      const result = await window.electronAPI.checkForUpdates();
+      
+      if (!result.success && result.error) {
+        toast.error(result.error);
+        setIsCheckingUpdate(false);
+      }
+
+      // Cleanup subscription after 30 seconds
+      setTimeout(() => {
+        setIsCheckingUpdate(false);
+      }, 30000);
+    } catch (error: any) {
+      toast.error(`Failed to check for updates: ${error?.message || "Unknown error"}`);
+      setIsCheckingUpdate(false);
+    }
+  };
+
+  const handleInstallUpdate = async () => {
+    if (!window.electronAPI?.installUpdate) {
+      toast.error("Installer not available");
+      return;
+    }
+
+    try {
+      const result = await window.electronAPI.installUpdate();
+      if (result.success) {
+        toast.success("Installing update and restarting...");
+      } else {
+        toast.error(result.error || "Failed to install update");
+      }
+    } catch (error: any) {
+      toast.error(`Failed to install update: ${error?.message || "Unknown error"}`);
+    }
+  };
+
   return (
     <div className="min-h-dvh bg-background text-foreground">
       <TopNav />
@@ -463,6 +537,53 @@ function SettingsPage() {
               >
                 ✕ Clear Cache
               </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Software Updates */}
+        <div className="mb-8 border border-border bg-panel p-6">
+          <h2 className="mb-4 font-mono text-[11px] font-bold uppercase tracking-widest text-dim">
+            Software Updates
+          </h2>
+          <div className="space-y-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="font-mono text-[10px] text-dim">Check for new version updates</p>
+                <p className="font-mono text-[10px] text-dim/60">
+                  Auto-download and install on restart
+                </p>
+                {updateStatus && (
+                  <p className={`font-mono text-[10px] mt-2 ${updateStatus.error ? "text-alert" : updateStatus.downloaded ? "text-phosphor" : "text-dim"}`}>
+                    {updateStatus.downloaded 
+                      ? `Version ${updateStatus.version} ready to install`
+                      : updateStatus.available 
+                        ? `Downloading ${updateStatus.version}...`
+                        : updateStatus.error 
+                          ? `Error: ${updateStatus.error}`
+                          : updateStatus.checking 
+                            ? "Checking..."
+                            : "No updates available"}
+                  </p>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleCheckForUpdates}
+                  disabled={isCheckingUpdate}
+                  className="border border-phosphor/40 bg-phosphor/10 px-4 py-2 font-mono text-[11px] uppercase tracking-widest text-phosphor transition-colors hover:bg-phosphor/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isCheckingUpdate ? "⟳ Checking..." : "↻ Check for Updates"}
+                </button>
+                {updateStatus?.downloaded && (
+                  <button
+                    onClick={handleInstallUpdate}
+                    className="border border-amber/40 bg-amber/10 px-4 py-2 font-mono text-[11px] uppercase tracking-widest text-amber transition-colors hover:bg-amber/20"
+                  >
+                    ↻ Install Now
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
