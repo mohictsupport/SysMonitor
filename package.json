@@ -1,6 +1,6 @@
 {
   "name": "sysmonitor",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "private": true,
   "license": "UNLICENSED",
   "sideEffects": false,
@@ -147,7 +147,8 @@
         "certificateFile": "certs/sysmonitor-cert.pfx",
         "certificatePassword": "SysMonitor123!"
       },
-      "verifyUpdateCodeSignature": false
+      "verifyUpdateCodeSignature": false,
+      "artifactName": "${productName}.Setup.${version}.${ext}"
     },
     "mac": {
       "target": "dmg",

@@ -168,6 +168,25 @@ export function UpdateNotification() {
     );
   }
 
+  // Format error message to be user-friendly
+  const formatErrorMessage = (error: string): string => {
+    // Hide URLs and technical details
+    if (error.includes("Cannot download") || error.includes("status 404")) {
+      return "Update file not found. The release may still be publishing. Please try again in a few minutes.";
+    }
+    if (error.includes("net::ERR") || error.includes("network")) {
+      return "Network connection failed. Please check your internet connection and try again.";
+    }
+    if (error.includes("certificate") || error.includes("SSL")) {
+      return "Security certificate error. Please try again later.";
+    }
+    if (error.includes("access denied") || error.includes("403")) {
+      return "Access denied. Please contact your administrator.";
+    }
+    // Generic fallback - remove URLs
+    return error.replace(/https?:\/\/[^\s"]+/g, "[...]");
+  };
+
   // Error
   if (status.error) {
     return (
@@ -179,7 +198,7 @@ export function UpdateNotification() {
             </div>
             <div className="flex-1">
               <h4 className="font-medium text-foreground">Update Error</h4>
-              <p className="mt-1 text-sm text-dim">{status.error}</p>
+              <p className="mt-1 text-sm text-dim">{formatErrorMessage(status.error)}</p>
               <button
                 onClick={handleCheckNow}
                 className="mt-2 text-sm text-phosphor hover:underline"

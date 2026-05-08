@@ -323,6 +323,20 @@ function SettingsPage() {
     queryClient.invalidateQueries({ queryKey: ["daily_stats"] });
   };
 
+  // Format update error messages to be user-friendly
+  const formatUpdateError = (error: string): string => {
+    if (error.includes("Cannot download") || error.includes("status 404")) {
+      return "Update file not found. The release may still be publishing.";
+    }
+    if (error.includes("net::ERR") || error.includes("network")) {
+      return "Network connection failed.";
+    }
+    if (error.includes("certificate") || error.includes("SSL")) {
+      return "Security certificate error.";
+    }
+    return "Update check failed. Please try again later.";
+  };
+
   const handleCheckForUpdates = async () => {
     if (!isElectron()) {
       toast.error("Updates are only available in the desktop app");
@@ -346,7 +360,7 @@ function SettingsPage() {
           toast.success(`Version ${status.version} is ready to install`);
           setIsCheckingUpdate(false);
         } else if (status.error) {
-          toast.error(`Update error: ${status.error}`);
+          toast.error(formatUpdateError(status.error));
           setIsCheckingUpdate(false);
         } else if (status.available && !status.checking) {
           toast.info(`Update available: ${status.version}`);
@@ -560,7 +574,7 @@ function SettingsPage() {
                       : updateStatus.available 
                         ? `Downloading ${updateStatus.version}...`
                         : updateStatus.error 
-                          ? `Error: ${updateStatus.error}`
+                          ? formatUpdateError(updateStatus.error)
                           : updateStatus.checking 
                             ? "Checking..."
                             : "No updates available"}
