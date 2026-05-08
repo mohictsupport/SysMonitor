@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import type { Site } from "@/lib/sites-data";
 import { StatusDot, statusLabel } from "./StatusIndicator";
 import { LatencySparkline } from "./LatencySparkline";
+import { OSIcon } from "./OSIcon";
 
 interface SiteCardProps {
   site: Site;
@@ -62,7 +63,10 @@ export function SiteCard({ site, onClick }: SiteCardProps) {
     <>
       <div className="mb-4 flex items-start justify-between">
         <div className="min-w-0">
-          <h3 className="truncate font-medium text-foreground">{site.name}</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="truncate font-medium text-foreground">{site.name}</h3>
+            <OSIcon os={site.os} size="sm" />
+          </div>
           <div className="flex items-center gap-1.5">
             {/* NetBird IP hidden for security */}
             <code className="font-mono text-[10px] text-dim">{site.region}</code>

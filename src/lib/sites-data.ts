@@ -61,6 +61,8 @@ export interface Site {
   history: LatencyPoint[];
   checks: Check[];
   tags: string[];
+  os?: string; // Operating system from NetBird
+  version?: string; // NetBird client version
 }
 
 export const defaultAlertingRules: AlertingRule[] = [

@@ -2,6 +2,7 @@ import { createFileRoute, Link, useLocation, useNavigate } from "@tanstack/react
 import { useMemo, useState, useEffect, useCallback, useRef, memo } from "react";
 import { TopNav } from "@/components/TopNav";
 import { StatusDot, statusLabel, StatusBadge } from "@/components/StatusIndicator";
+import { OSIcon } from "@/components/OSIcon";
 import { NetBirdSyncBadge } from "@/components/NetBirdSyncStatus";
 import { useNetbirdSites } from "@/lib/use-netbird";
 import { useAllSitesUptime } from "@/lib/use-site-uptime";
@@ -129,8 +130,11 @@ const SiteRow = memo(({ site, onClick, onDelete }: { site: Site; onClick: () => 
         </div>
       </div>
       <div className="col-span-2 font-mono text-[11px] text-dim" onClick={onClick}>{site.region}</div>
+      <div className="col-span-1" onClick={onClick}>
+        <OSIcon os={site.os} size="sm" showLabel />
+      </div>
       {/* NetBird IP hidden for security - showing status instead */}
-      <div className={`col-span-3 font-mono text-[11px] ${site.netbirdConnected ? "text-phosphor" : "text-alert"}`} onClick={onClick}>
+      <div className={`col-span-2 font-mono text-[11px] ${site.netbirdConnected ? "text-phosphor" : "text-alert"}`} onClick={onClick}>
         {site.netbirdConnected ? "● Connected" : "● Disconnected"}
       </div>
       <div className="col-span-2 font-mono text-[10px] text-dim" onClick={onClick}>
@@ -407,7 +411,8 @@ function SitesPage() {
           <div className="hidden grid-cols-12 gap-4 border-b border-border bg-panel-2 px-4 py-2 font-mono text-[10px] uppercase tracking-widest text-dim md:grid">
             <div className="col-span-3">Site</div>
             <div className="col-span-2">Region</div>
-            <div className="col-span-3">Status</div>
+            <div className="col-span-1">OS</div>
+            <div className="col-span-2">Status</div>
             <div className="col-span-2">Last Seen</div>
             <div className="col-span-2 text-right">Actions</div>
           </div>
@@ -650,6 +655,7 @@ export function SiteDetailModal({
             ) : (
               <h1 className="mt-1 flex items-center gap-3 text-2xl font-medium tracking-tight group">
                 {site.name}
+                <OSIcon os={site.os} size="md" />
                 <Button
                   variant="ghost"
                   size="icon"
@@ -680,7 +686,7 @@ export function SiteDetailModal({
         </div>
 
         {/* Metrics */}
-        <div className="mt-6 grid grid-cols-2 gap-px border border-border bg-border md:grid-cols-4">
+        <div className="mt-6 grid grid-cols-2 gap-px border border-border bg-border md:grid-cols-5">
           <Tile
             label="Tunnel"
             value={site.netbirdConnected ? "Connected" : "Down"}
@@ -688,6 +694,7 @@ export function SiteDetailModal({
           />
           {/* NetBird IP hidden for security */}
           <Tile label="Region" value={site.region} />
+          <Tile label="OS" value={site.os || "—"} />
           <Tile label="Tags" value={site.tags.slice(0, 2).join(", ") || "—"} />
           <Tile
             label="Last Seen"
@@ -774,6 +781,8 @@ export function SiteDetailModal({
                   v={site.netbirdConnected ? "Connected" : "Disconnected"}
                   tone={site.netbirdConnected ? "ok" : "alert"}
                 />
+                <Row k="OS" v={site.os || "—"} />
+                <Row k="Version" v={site.version || "—"} />
                 {/* Peer IP hidden for security */}
                 <Row k="Tunnel" v="WireGuard / UDP 51820" />
                 <Row k="Encryption" v="ChaCha20-Poly1305" />

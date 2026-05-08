@@ -77,18 +77,33 @@ function IndexPage() {
     return sitesWithAccurateUptime.filter((s) => s.status === siteFilter);
   }, [sitesWithAccurateUptime, siteFilter]);
 
-  // Group sites by region
+  // Helper to check if OS is a device (Android, iOS, Windows)
+  const isDeviceOS = (os?: string) => {
+    if (!os) return false;
+    const osLower = os.toLowerCase();
+    return osLower.includes("android") || osLower.includes("ios") || osLower.includes("windows");
+  };
+
+  // Group sites by region (Devices group for Android/iOS/Windows)
   const sitesByRegion = useMemo(() => {
     const grouped: Record<string, Site[]> = {};
     filteredSites.forEach(site => {
-      const region = site.region || "Other";
+      // Check if it's a device OS (Android, iOS, Windows)
+      const region = isDeviceOS(site.os) ? "Devices" : (site.region || "Other");
       if (!grouped[region]) {
         grouped[region] = [];
       }
       grouped[region].push(site);
     });
     // Sort regions in the predefined order, then any others alphabetically
+    // Put "Devices" first if it exists
     const sortedRegions: Array<{ name: string; sites: Site[] }> = [];
+    // Add Devices first if it exists
+    if (grouped["Devices"]) {
+      sortedRegions.push({ name: "Devices", sites: grouped["Devices"] });
+      delete grouped["Devices"];
+    }
+    // Then add predefined regions
     REGIONS.forEach(region => {
       if (grouped[region]) {
         sortedRegions.push({ name: region, sites: grouped[region] });

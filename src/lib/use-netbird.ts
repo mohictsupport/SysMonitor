@@ -123,6 +123,8 @@ export function peerToSite(peer: NetbirdPeerLite, history?: UptimeHistory): Site
       },
     ],
     tags: peer.groups.length > 0 ? peer.groups : ["netbird"],
+    os: peer.os,
+    version: peer.version,
   };
 }
 
