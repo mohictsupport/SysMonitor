@@ -1,6 +1,6 @@
 {
   "name": "sysmonitor",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "private": true,
   "license": "UNLICENSED",
   "sideEffects": false,
@@ -16,11 +16,11 @@
     "format": "prettier --write .",
     "electron": ".\\node_modules\\.bin\\electron.cmd electron.cjs",
     "electron:dev": "concurrently \"npm run dev\" \"wait-on http://127.0.0.1:3000 && .\\node_modules\\.bin\\electron.cmd electron.cjs\"",
-    "electron:build": "node scripts/update-readme.js && node scripts/inject-version.js && npm run build && electron-builder",
+    "electron:build": "node scripts/update-readme.cjs && node scripts/inject-version.cjs && npm run build && electron-builder",
     "desktop": "npm run electron:dev",
     "desktop:build": "npm run electron:build",
-    "update-readme": "node scripts/update-readme.js",
-    "inject-version": "node scripts/inject-version.js"
+    "update-readme": "node scripts/update-readme.cjs",
+    "inject-version": "node scripts/inject-version.cjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
