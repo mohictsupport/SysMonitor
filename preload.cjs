@@ -40,6 +40,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // HTTP probe (bypasses CSP via main process)
   httpProbe: (url) => ipcRenderer.invoke('http-probe', url),
 
+  // Auto-updater
+  checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+  installUpdate: () => ipcRenderer.invoke('install-update'),
+  getUpdateStatus: () => ipcRenderer.invoke('get-update-status'),
+  onUpdateStatus: (callback) => ipcRenderer.on('update-status', (event, status) => callback(status)),
+
   // Navigation
   onNavigate: (callback) => ipcRenderer.on('navigate', (event, path) => callback(path)),
 });

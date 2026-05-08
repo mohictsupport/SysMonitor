@@ -2,6 +2,7 @@ import { Link, useLocation } from "@tanstack/react-router";
 import { AlertIndicator } from "./AlertIndicator";
 import { OnboardingIndicator } from "./OnboardingIndicator";
 import { AddSiteButton } from "./AddSiteButton";
+import { UpdateBadge } from "./UpdateNotification";
 import { useNetbirdSites } from "@/lib/use-netbird";
 import { useEffect, useState } from "react";
 import { loadPendingSites, getPendingCount } from "@/lib/site-onboarding";
@@ -105,6 +106,7 @@ export function TopNav({ onAddSite }: TopNavProps = {}) {
         </div>
 
         <div className="flex items-center gap-3 md:gap-4">
+          <UpdateBadge />
           <OnboardingIndicator pendingCount={pendingCount} />
           <AlertIndicator sites={sites} isNetworkOnline={isOnline} apiError={error} isLoading={isLoading} />
           <AddSiteButton onSiteAdded={handleSiteAdded} onClick={onAddSite} />

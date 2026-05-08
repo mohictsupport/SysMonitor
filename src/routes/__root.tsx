@@ -9,6 +9,7 @@ import { useEffect } from "react";
 import { setupNavigationHandler, isElectron } from "@/lib/electron-notifications";
 import { Toaster } from "@/components/ui/sonner";
 import { useInactivityLogout } from "@/lib/use-inactivity-logout";
+import { UpdateNotification } from "@/components/UpdateNotification";
 
 import "../styles.css";
 
@@ -60,6 +61,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <Outlet />
       <Toaster />
+      <UpdateNotification />
     </QueryClientProvider>
   );
 }

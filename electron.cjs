@@ -1,4 +1,5 @@
 const { app, BrowserWindow, ipcMain, dialog, shell, Notification, Menu, powerSaveBlocker, safeStorage } = require('electron');
+const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -9,6 +10,23 @@ let mainWindow;
 
 // Power save blocker to prevent OS sleep during monitoring
 let powerBlockerId = null;
+
+// Update status tracking
+let updateStatus = {
+  checking: false,
+  available: false,
+  downloaded: false,
+  error: null,
+  version: null,
+  percent: 0,
+};
+
+// Send update status to renderer
+function sendUpdateStatus() {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('update-status', updateStatus);
+  }
+}
 
 // Config directory for storing settings
 const CONFIG_DIR = path.join(os.homedir(), '.sysmonitor');
@@ -148,6 +166,114 @@ function createWindow() {
   });
 }
 
+// Setup auto-updater
+function setupAutoUpdater() {
+  // Configure auto-updater
+  autoUpdater.autoDownload = true; // Silent download
+  autoUpdater.autoInstallOnAppQuit = true; // Install on restart
+
+  // Check for updates on startup
+  console.log('[AutoUpdater] Checking for updates...');
+  updateStatus.checking = true;
+  sendUpdateStatus();
+  autoUpdater.checkForUpdatesAndNotify().catch(err => {
+    console.error('[AutoUpdater] Failed to check for updates:', err);
+    updateStatus.checking = false;
+    updateStatus.error = err.message;
+    sendUpdateStatus();
+  });
+
+  // Update available
+  autoUpdater.on('update-available', (info) => {
+    console.log('[AutoUpdater] Update available:', info.version);
+    updateStatus = {
+      checking: false,
+      available: true,
+      downloaded: false,
+      error: null,
+      version: info.version,
+      percent: 0,
+    };
+    sendUpdateStatus();
+
+    // Show notification that update is downloading
+    const notif = new Notification({
+      title: 'Update Available',
+      body: `Version ${info.version} is downloading. Restart to install.`,
+      silent: true,
+    });
+    notif.show();
+  });
+
+  // Update not available
+  autoUpdater.on('update-not-available', () => {
+    console.log('[AutoUpdater] No updates available');
+    updateStatus = {
+      checking: false,
+      available: false,
+      downloaded: false,
+      error: null,
+      version: null,
+      percent: 0,
+    };
+    sendUpdateStatus();
+  });
+
+  // Download progress
+  autoUpdater.on('download-progress', (progress) => {
+    console.log(`[AutoUpdater] Download progress: ${Math.round(progress.percent)}%`);
+    updateStatus.percent = Math.round(progress.percent);
+    sendUpdateStatus();
+  });
+
+  // Update downloaded
+  autoUpdater.on('update-downloaded', (info) => {
+    console.log('[AutoUpdater] Update downloaded:', info.version);
+    updateStatus = {
+      checking: false,
+      available: true,
+      downloaded: true,
+      error: null,
+      version: info.version,
+      percent: 100,
+    };
+    sendUpdateStatus();
+
+    // Show notification that update is ready
+    const notif = new Notification({
+      title: 'Update Ready',
+      body: `Version ${info.version} downloaded. Restart to apply update.`,
+      silent: false,
+    });
+    notif.on('click', () => {
+      autoUpdater.quitAndInstall();
+    });
+    notif.show();
+  });
+
+  // Error
+  autoUpdater.on('error', (err) => {
+    console.error('[AutoUpdater] Error:', err);
+    updateStatus = {
+      checking: false,
+      available: false,
+      downloaded: false,
+      error: err.message,
+      version: null,
+      percent: 0,
+    };
+    sendUpdateStatus();
+  });
+
+  // Periodic check every 30 minutes
+  setInterval(() => {
+    if (!updateStatus.downloaded) {
+      console.log('[AutoUpdater] Periodic update check...');
+      autoUpdater.checkForUpdates().catch(() => {});
+    }
+  }, 30 * 60 * 1000);
+}
+
 // App ready
 app.whenReady().then(() => {
   console.log('Electron app ready, creating window...');
@@ -161,6 +287,11 @@ app.whenReady().then(() => {
   console.log('Power save blocker started, ID:', powerBlockerId);
 
   createWindow();
+
+  // Setup auto-updater (only in packaged app)
+  if (app.isPackaged) {
+    setupAutoUpdater();
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -565,6 +696,34 @@ ipcMain.handle('http-probe', async (event, url) => {
       detail: msg.includes('aborted') ? 'Timeout after 8s' : msg.slice(0, 120),
     };
   }
+});
+
+// Auto-updater IPC handlers
+ipcMain.handle('check-for-updates', async () => {
+  if (!app.isPackaged) {
+    return { success: false, error: 'Not in packaged app' };
+  }
+  try {
+    const result = await autoUpdater.checkForUpdates();
+    return { success: true, updateInfo: result?.updateInfo || null };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('install-update', async () => {
+  if (!app.isPackaged) {
+    return { success: false, error: 'Not in packaged app' };
+  }
+  if (!updateStatus.downloaded) {
+    return { success: false, error: 'No update downloaded' };
+  }
+  autoUpdater.quitAndInstall();
+  return { success: true };
+});
+
+ipcMain.handle('get-update-status', async () => {
+  return updateStatus;
 });
 
 // Concurrency limiter (simple implementation for main process)

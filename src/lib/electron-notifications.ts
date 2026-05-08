@@ -663,6 +663,25 @@ declare global {
         latencyMs?: number;
         detail?: string;
       }>;
+      // Auto-updater
+      checkForUpdates: () => Promise<{ success: boolean; updateInfo?: unknown; error?: string }>;
+      installUpdate: () => Promise<{ success: boolean; error?: string }>;
+      getUpdateStatus: () => Promise<{
+        checking: boolean;
+        available: boolean;
+        downloaded: boolean;
+        error: string | null;
+        version: string | null;
+        percent: number;
+      }>;
+      onUpdateStatus: (callback: (status: {
+        checking: boolean;
+        available: boolean;
+        downloaded: boolean;
+        error: string | null;
+        version: string | null;
+        percent: number;
+      }) => void) => void;
     };
   }
 }
