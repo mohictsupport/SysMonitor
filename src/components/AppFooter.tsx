@@ -1,7 +1,7 @@
 import { Heart } from "lucide-react";
 
 // Get version from package.json at build time
-const APP_VERSION = "1.2.0";
+const APP_VERSION = "1.3.0";
 const CURRENT_YEAR = 2026;
 
 export function AppFooter() {
@@ -10,7 +10,7 @@ export function AppFooter() {
       <div className="flex items-center justify-center gap-1 text-[11px] text-dim">
         <span>Built with</span>
         <Heart className="h-3 w-3 fill-alert text-alert" />
-        <span className="font-medium text-foreground">by Ministry of Health (MOH)</span>
+        <span className="font-medium text-foreground">by Ministry of Health (MOH) ICT</span>
         <span className="mx-1">•</span>
         <span className="font-medium">SysMonitor</span>
         <span className="mx-1">•</span>
