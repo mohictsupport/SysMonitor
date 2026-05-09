@@ -47,13 +47,9 @@ $packageJson.version = $newVersion
 
 $jsonOutput = $packageJson | ConvertTo-Json -Depth 10
 
-# PowerShell 5 and 7 compatibility
-if ($PSVersionTable.PSVersion.Major -ge 6) {
-    $jsonOutput | Set-Content -Path "package.json" -Encoding utf8NoBOM
-}
-else {
-    $jsonOutput | Set-Content -Path "package.json" -Encoding UTF8
-}
+# Write without BOM using .NET (works in PowerShell 5 and 7)
+$bytes = [System.Text.Encoding]::UTF8.GetBytes($jsonOutput)
+[System.IO.File]::WriteAllBytes("package.json", $bytes)
 
 Write-Host "OK - Updated package.json" -ForegroundColor Green
 
