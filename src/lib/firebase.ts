@@ -50,3 +50,17 @@ export function waitForAuthState(): Promise<User | null> {
     });
   });
 }
+
+// React hook to access Firebase
+import { useState, useEffect } from "react";
+
+export function useFirebase() {
+  const [initialized, setInitialized] = useState(true);
+  
+  useEffect(() => {
+    // Firebase is already initialized at module level
+    setInitialized(true);
+  }, []);
+  
+  return { db, auth, initialized };
+}

@@ -1,6 +1,6 @@
 {
     "name":  "sysmonitor",
-    "version":  "2.0.5",
+    "version":  "2.0.6",
     "private":  true,
     "license":  "UNLICENSED",
     "sideEffects":  false,
@@ -104,7 +104,7 @@
                             "vite":  "^7.3.1",
                             "wait-on":  "^8.0.1"
                         },
-    "description":  "SiteGuardian Pro - Network monitoring tool (Proprietary - All Rights Reserved)",
+    "description":  "SysMonitor - Network monitoring tool (Proprietary - All Rights Reserved)",
     "build":  {
                   "appId":  "com.sysmonitor.app",
                   "productName":  "SysMonitor",

@@ -1,8 +1,10 @@
-import { useMemo, useEffect, useRef } from "react";
+import { useMemo, useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { listNetbirdPeers, type NetbirdPeerLite } from "./netbird.functions";
 import { recordStateChange, calculateUptime, loadHistory, type UptimeHistory } from "./uptime-history";
 import type { Site, SiteStatus } from "./sites-data";
+import { collection, onSnapshot, getFirestore, query } from "firebase/firestore";
+import { useFirebase } from "./firebase";
 
 const SITES_CACHE_KEY = "sysmonitor.sitesCache.v1";
 const CACHE_MAX_AGE_MS = 5 * 60 * 1000; // 5 minutes
@@ -401,6 +403,71 @@ export function useNetbirdSites() {
     isError,
     failureCount: q.failureCount,
   };
+}
+
+/**
+ * Real-time hook using Firebase onSnapshot for devices/sites
+ */
+export function useNetbirdSitesRealtime() {
+  const { db, initialized } = useFirebase();
+  const [sites, setSites] = useState<Site[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const [isRealtime, setIsRealtime] = useState(false);
+
+  useEffect(() => {
+    if (!initialized || !db) {
+      // Fallback to polling if Firebase not available
+      return;
+    }
+
+    const q = query(collection(db, "sites"));
+    
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const sitesData: Site[] = [];
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          sitesData.push({
+            id: doc.id,
+            name: data.name || "",
+            hostname: data.hostname || data.name || "",
+            region: data.region || data.location || "",
+            ipv4: data.ipv4 || data.ip || "",
+            netbirdIp: data.netbirdIp || data.ip || "",
+            status: data.status || "offline",
+            uptime: data.uptime || 0,
+            latencyMs: data.latencyMs || 0,
+            packetLoss: data.packetLoss || 0,
+            netbirdConnected: data.netbirdConnected || data.connected || false,
+            sslDaysLeft: data.sslDaysLeft || 0,
+            lastCheckedAt: data.lastCheckedAt || Date.now(),
+            lastSeen: data.lastSeen || null,
+            history: data.history || [],
+            checks: data.checks || [],
+            tags: data.tags || [],
+            os: data.os || "Unknown",
+            version: data.version || "",
+            ...data
+          } as Site);
+        });
+        setSites(sitesData);
+        setIsLoading(false);
+        setIsRealtime(true);
+      },
+      (err) => {
+        console.error("onSnapshot error:", err);
+        setError(err);
+        setIsLoading(false);
+        setIsRealtime(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [db, initialized]);
+
+  return { sites, isLoading, error, isRealtime };
 }
 
 /**

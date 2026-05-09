@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { TopNav } from "@/components/TopNav";
 import { OSIcon } from "@/components/OSIcon";
-import { useNetbirdSites } from "@/lib/use-netbird";
+import { useNetbirdSitesRealtime } from "@/lib/use-netbird";
 import { ApiKeyGate } from "@/components/ApiKeyGate";
 import { useHasApiKey } from "@/lib/auth-utils";
 import {
@@ -61,7 +61,7 @@ type SortField = "name" | "region" | "os" | "status" | "lastSeen";
 type SortDirection = "asc" | "desc";
 
 function DevicesPage() {
-  const { sites, isLoading } = useNetbirdSites();
+  const { sites, isLoading } = useNetbirdSitesRealtime();
   const hasApiKey = useHasApiKey();
   const [searchTerm, setSearchTerm] = useState("");
   const [sortField, setSortField] = useState<SortField>("lastSeen");
@@ -283,9 +283,13 @@ function DevicesPage() {
                   </div>
                   <div className="col-span-3 flex items-center gap-1.5 font-mono text-[11px] text-dim">
                     <Clock className="w-3 h-3" />
-                    {device.lastSeen
-                      ? formatTimeAgo(device.lastSeen)
-                      : "Never"}
+                    {device.netbirdConnected ? (
+                      <span className="text-phosphor">Online now</span>
+                    ) : device.lastSeen ? (
+                      formatTimeAgo(device.lastSeen)
+                    ) : (
+                      "Never"
+                    )}
                   </div>
                 </div>
               );
