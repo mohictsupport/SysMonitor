@@ -2,7 +2,7 @@
 
 A real-time network monitoring dashboard for managing NetBird VPN connections across distributed sites. Built with React, TypeScript, and Electron.
 
-![Version](https://img.shields.io/badge/version-2.0.14-blue)
+![Version](https://img.shields.io/badge/version-2.0.15-blue)
 ![Electron](https://img.shields.io/badge/Electron-33.0.0-47848F)
 ![React](https://img.shields.io/badge/React-19.2.0-61DAFB)
 ![License](https://img.shields.io/badge/License-UNLICENSED-red)
@@ -479,7 +479,7 @@ For issues and feature requests:
 
 **Built with ❤️ by Ministry of Health (MOH)**
 
-**SysMonitor** • Version 2.0.14 • © 2025-2026
+**SysMonitor** • Version 2.0.15 • © 2025-2026
 
 All Rights Reserved.
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Download, RefreshCw, CheckCircle, AlertCircle, X } from "lucide-react";
 import { isElectron } from "@/lib/electron-notifications";
 
