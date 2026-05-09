@@ -1,6 +1,6 @@
 {
     "name":  "sysmonitor",
-    "version":  "2.0.12",
+    "version":  "2.0.13",
     "private":  true,
     "license":  "UNLICENSED",
     "sideEffects":  false,
@@ -16,7 +16,7 @@
                     "format":  "prettier --write .",
                     "electron":  ".\\node_modules\\.bin\\electron.cmd electron.cjs",
                     "electron:dev":  "concurrently \"npm run dev\" \"wait-on http://127.0.0.1:3000 \u0026\u0026 .\\node_modules\\.bin\\electron.cmd electron.cjs\"",
-                    "electron:build":  "node scripts/update-readme.cjs \u0026\u0026 node scripts/inject-version.cjs \u0026\u0026 npm run build \u0026\u0026 electron-builder \u0026\u0026 -p always",
+                    "electron:build":  "node scripts/update-readme.cjs \u0026\u0026 node scripts/inject-version.cjs \u0026\u0026 npm run build \u0026\u0026 electron-builder",
                     "desktop":  "npm run electron:dev",
                     "desktop:build":  "npm run electron:build",
                     "update-readme":  "node scripts/update-readme.cjs",

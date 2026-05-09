@@ -9,6 +9,7 @@ interface UpdateStatus {
   error: string | null;
   version: string | null;
   percent: number;
+  canResume?: boolean;
 }
 
 export function UpdateNotification() {
@@ -136,7 +137,11 @@ export function UpdateNotification() {
             <div className="flex-1">
               <h4 className="font-medium text-foreground">Update Available</h4>
               <p className="mt-1 text-sm text-dim">
-                Version {status.version} is being downloaded...
+                {status.canResume ? (
+                  <span className="text-amber">Resuming download ({status.percent}%)</span>
+                ) : (
+                  `Version ${status.version} is being downloaded...`
+                )}
               </p>
               {/* Progress bar */}
               <div className="mt-3 h-1.5 w-full rounded-full bg-border">

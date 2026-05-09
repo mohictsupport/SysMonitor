@@ -32,6 +32,63 @@ function sendUpdateStatus() {
 const CONFIG_DIR = path.join(os.homedir(), '.sysmonitor');
 const SETTINGS_FILE = path.join(CONFIG_DIR, 'settings.json');
 const API_KEY_FILE = path.join(CONFIG_DIR, 'netbird-api-key.txt');
+const DOWNLOAD_STATE_FILE = path.join(CONFIG_DIR, 'download-state.json');
+
+// Download state for resume capability
+let downloadState = {
+  version: null,
+  downloadedBytes: 0,
+  totalBytes: 0,
+  isDownloading: false,
+  lastError: null,
+  downloadUrl: null,
+  partialFile: null,
+};
+
+// Save download state to disk
+function saveDownloadState() {
+  try {
+    if (!fs.existsSync(CONFIG_DIR)) {
+      fs.mkdirSync(CONFIG_DIR, { recursive: true });
+    }
+    fs.writeFileSync(DOWNLOAD_STATE_FILE, JSON.stringify(downloadState, null, 2));
+  } catch (err) {
+    console.error('[DownloadState] Failed to save:', err);
+  }
+}
+
+// Load download state from disk
+function loadDownloadState() {
+  try {
+    if (fs.existsSync(DOWNLOAD_STATE_FILE)) {
+      const data = fs.readFileSync(DOWNLOAD_STATE_FILE, 'utf8');
+      downloadState = { ...downloadState, ...JSON.parse(data) };
+      console.log('[DownloadState] Loaded:', downloadState);
+    }
+  } catch (err) {
+    console.error('[DownloadState] Failed to load:', err);
+  }
+}
+
+// Clear download state
+function clearDownloadState() {
+  downloadState = {
+    version: null,
+    downloadedBytes: 0,
+    totalBytes: 0,
+    isDownloading: false,
+    lastError: null,
+    downloadUrl: null,
+    partialFile: null,
+  };
+  try {
+    if (fs.existsSync(DOWNLOAD_STATE_FILE)) {
+      fs.unlinkSync(DOWNLOAD_STATE_FILE);
+    }
+  } catch (err) {
+    console.error('[DownloadState] Failed to clear:', err);
+  }
+}
 
 // Ensure config directory exists
 if (!fs.existsSync(CONFIG_DIR)) {
@@ -169,8 +226,11 @@ function createWindow() {
 // Setup auto-updater
 function setupAutoUpdater() {
   // Configure auto-updater
-  autoUpdater.autoDownload = true; // Silent download
+  autoUpdater.autoDownload = false; // Manual download for resume support
   autoUpdater.autoInstallOnAppQuit = true; // Install on restart
+
+  // Load previous download state
+  loadDownloadState();
 
   // Check for updates on startup
   console.log('[AutoUpdater] Checking for updates...');
@@ -186,15 +246,30 @@ function setupAutoUpdater() {
   // Update available
   autoUpdater.on('update-available', (info) => {
     console.log('[AutoUpdater] Update available:', info.version);
+    
+    // Check if we have a partial download to resume
+    const hasPartialDownload = downloadState.version === info.version && downloadState.downloadedBytes > 0;
+    
     updateStatus = {
       checking: false,
       available: true,
       downloaded: false,
       error: null,
       version: info.version,
-      percent: 0,
+      percent: hasPartialDownload ? Math.round((downloadState.downloadedBytes / downloadState.totalBytes) * 100) : 0,
+      canResume: hasPartialDownload,
     };
     sendUpdateStatus();
+    
+    // Auto-start download if no partial download exists, or resume if available
+    if (hasPartialDownload) {
+      console.log('[AutoUpdater] Resuming download from', downloadState.downloadedBytes, 'bytes');
+    }
+    
+    // Start download (electron-updater handles resume internally via HTTP range requests)
+    autoUpdater.downloadUpdate().catch((err) => {
+      console.error('[AutoUpdater] Download failed:', err);
+    });
 
     // System notification disabled - app uses its own UI notifications
     // const notif = new Notification({
@@ -223,6 +298,16 @@ function setupAutoUpdater() {
   autoUpdater.on('download-progress', (progress) => {
     console.log(`[AutoUpdater] Download progress: ${Math.round(progress.percent)}%`);
     updateStatus.percent = Math.round(progress.percent);
+    
+    // Save download state for resume capability
+    downloadState = {
+      ...downloadState,
+      downloadedBytes: progress.transferred,
+      totalBytes: progress.total,
+      isDownloading: true,
+    };
+    saveDownloadState();
+    
     sendUpdateStatus();
   });
 
