@@ -1,6 +1,6 @@
 {
     "name":  "sysmonitor",
-    "version":  "2.0.15",
+    "version":  "2.0.16",
     "private":  true,
     "license":  "UNLICENSED",
     "sideEffects":  false,
