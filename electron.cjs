@@ -196,13 +196,13 @@ function setupAutoUpdater() {
     };
     sendUpdateStatus();
 
-    // Show notification that update is downloading
-    const notif = new Notification({
-      title: 'Update Available',
-      body: `Version ${info.version} is downloading. Restart to install.`,
-      silent: true,
-    });
-    notif.show();
+    // System notification disabled - app uses its own UI notifications
+    // const notif = new Notification({
+    //   title: 'Update Available',
+    //   body: `Version ${info.version} is downloading. Restart to install.`,
+    //   silent: true,
+    // });
+    // notif.show();
   });
 
   // Update not available
@@ -239,16 +239,16 @@ function setupAutoUpdater() {
     };
     sendUpdateStatus();
 
-    // Show notification that update is ready
-    const notif = new Notification({
-      title: 'Update Ready',
-      body: `Version ${info.version} downloaded. Restart to apply update.`,
-      silent: false,
-    });
-    notif.on('click', () => {
-      autoUpdater.quitAndInstall();
-    });
-    notif.show();
+    // System notification disabled - app uses its own UI notifications
+    // const notif = new Notification({
+    //   title: 'Update Ready',
+    //   body: `Version ${info.version} downloaded. Restart to apply update.`,
+    //   silent: false,
+    // });
+    // notif.on('click', () => {
+    //   autoUpdater.quitAndInstall();
+    // });
+    // notif.show();
   });
 
   // Error

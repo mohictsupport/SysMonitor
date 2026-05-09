@@ -15,6 +15,7 @@ export function UpdateNotification() {
   const [status, setStatus] = useState<UpdateStatus | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  const [isInstalling, setIsInstalling] = useState(false);
 
   useEffect(() => {
     if (!isElectron()) return;
@@ -48,6 +49,7 @@ export function UpdateNotification() {
   const handleInstall = async () => {
     if (!window.electronAPI?.installUpdate) return;
     
+    setIsInstalling(true);
     try {
       const result = await window.electronAPI.installUpdate();
       if (result.success) {
@@ -55,6 +57,7 @@ export function UpdateNotification() {
       }
     } catch (err) {
       console.error("Failed to install update:", err);
+      setIsInstalling(false);
     }
   };
 
@@ -95,9 +98,11 @@ export function UpdateNotification() {
               <div className="mt-3 flex gap-2">
                 <button
                   onClick={handleInstall}
-                  className="rounded bg-phosphor px-3 py-1.5 text-sm font-medium text-void hover:bg-phosphor/90 transition-colors"
+                  disabled={isInstalling}
+                  className="rounded bg-phosphor px-3 py-1.5 text-sm font-medium text-void hover:bg-phosphor/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
-                  Restart Now
+                  {isInstalling && <RefreshCw className="h-3 w-3 animate-spin" />}
+                  {isInstalling ? "Restarting..." : "Restart Now"}
                 </button>
                 <button
                   onClick={handleDismiss}
