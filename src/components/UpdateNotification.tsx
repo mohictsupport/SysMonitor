@@ -17,6 +17,7 @@ export function UpdateNotification() {
   const [isVisible, setIsVisible] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);
+  const notifiedVersionRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!isElectron()) return;
@@ -34,9 +35,13 @@ export function UpdateNotification() {
       setStatus(newStatus);
       
       // Show notification when update is available or downloaded
-      if (newStatus.available || newStatus.downloaded) {
-        setIsVisible(true);
-        setDismissed(false);
+      // Only show once per version to prevent spam
+      if ((newStatus.available || newStatus.downloaded) && newStatus.version) {
+        if (notifiedVersionRef.current !== newStatus.version) {
+          notifiedVersionRef.current = newStatus.version;
+          setIsVisible(true);
+          setDismissed(false);
+        }
       }
     });
 
@@ -65,6 +70,8 @@ export function UpdateNotification() {
   const handleDismiss = () => {
     setDismissed(true);
     setIsVisible(false);
+    // Reset notified version on dismiss so user can be notified again if needed
+    notifiedVersionRef.current = null;
   };
 
   const handleCheckNow = async () => {
