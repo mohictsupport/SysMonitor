@@ -83,13 +83,13 @@ Write-Host ""
 
 # Build app
 Write-Host "# 3. Build and publish" -ForegroundColor Gray
-Write-Host "npm run electron:build" -ForegroundColor Cyan
+Write-Host "npm run electron:build -- --publish always" -ForegroundColor Cyan
 Write-Host ""
 
 # One-line deployment command
 Write-Host "# 4. One line auto deploy command" -ForegroundColor Gray
 
-$deployCommand = "git add .; git commit -m `"Release v$newVersion`"; git push; git tag v$newVersion; git push origin v$newVersion; npm run electron:build"
+$deployCommand = "git add .; git commit -m `"Release v$newVersion`"; git push; git tag v$newVersion; git push origin v$newVersion; npm run electron:build -- --publish always"
 
 Write-Host $deployCommand -ForegroundColor Green
 

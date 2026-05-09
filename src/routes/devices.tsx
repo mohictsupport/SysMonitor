@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { TopNav } from "@/components/TopNav";
 import { OSIcon } from "@/components/OSIcon";
-import { useNetbirdSitesRealtime } from "@/lib/use-netbird";
+import { useNetbirdSites } from "@/lib/use-netbird";
 import { ApiKeyGate } from "@/components/ApiKeyGate";
 import { useHasApiKey } from "@/lib/auth-utils";
 import {
@@ -61,7 +61,7 @@ type SortField = "name" | "region" | "os" | "status" | "lastSeen";
 type SortDirection = "asc" | "desc";
 
 function DevicesPage() {
-  const { sites, isLoading } = useNetbirdSitesRealtime();
+  const { sites, isLoading } = useNetbirdSites();
   const hasApiKey = useHasApiKey();
   const [searchTerm, setSearchTerm] = useState("");
   const [sortField, setSortField] = useState<SortField>("lastSeen");

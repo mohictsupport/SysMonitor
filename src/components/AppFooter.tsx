@@ -1,7 +1,7 @@
 import { Heart } from "lucide-react";
 
 // Get version from package.json at build time
-const APP_VERSION = "2.0.7";
+const APP_VERSION = "2.0.8";
 const CURRENT_YEAR = 2026;
 
 export function AppFooter() {

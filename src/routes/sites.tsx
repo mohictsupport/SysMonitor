@@ -162,7 +162,7 @@ const SiteRow = memo(({ site, onClick, onDelete }: { site: Site; onClick: () => 
       <div className={`col-span-2 font-mono text-[11px] ${site.netbirdConnected ? "text-phosphor" : "text-alert"}`} onClick={onClick}>
         {site.netbirdConnected ? "● Connected" : "● Disconnected"}
       </div>
-      <div className="col-span-2 font-mono text-[10px] text-dim" onClick={onClick}>
+      <div className={`col-span-2 font-mono text-[10px] ${site.netbirdConnected ? "text-phosphor" : "text-dim"}`} onClick={onClick}>
         {site.netbirdConnected ? "Online now" : formatTimeAgo(site.lastSeen)}
       </div>
       <div className="col-span-2 text-right">
