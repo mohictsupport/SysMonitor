@@ -1,8 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { TopNav } from "@/components/TopNav";
 import { useNetbirdSites } from "@/lib/use-netbird";
-import { useMemo } from "react";
-import { WifiOff } from "lucide-react";
+import { useMemo, useState } from "react";
+import { WifiOff, Server, MapPin, Monitor, Link2, Wifi, Search, X, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { useHasApiKey } from "@/lib/auth-utils";
 import { ApiKeyGate } from "@/components/ApiKeyGate";
 
@@ -106,6 +106,64 @@ function TunnelsPage() {
   const { sites, loading, error } = useNetbirdSites();
 
   const connected = sites.filter((s) => s.netbirdConnected).length;
+  const [query, setQuery] = useState("");
+  const [sortField, setSortField] = useState<"name" | "region" | "os" | "status" | "lastSeen">("lastSeen");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+
+  const handleSort = (field: "name" | "region" | "os" | "status" | "lastSeen") => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
+  const getSortIcon = (field: "name" | "region" | "os" | "status" | "lastSeen") => {
+    if (sortField !== field) return <ArrowUpDown className="w-3 h-3 text-dim" />;
+    return sortDirection === "asc" ? <ArrowUp className="w-3 h-3 text-phosphor" /> : <ArrowDown className="w-3 h-3 text-phosphor" />;
+  };
+
+  // Filter and sort sites
+  const filteredSites = useMemo(() => {
+    let filtered = sites;
+    if (query) {
+      const q = query.toLowerCase();
+      filtered = sites.filter(
+        (s) =>
+          s.name.toLowerCase().includes(q) ||
+          s.hostname.toLowerCase().includes(q) ||
+          (s.region || "").toLowerCase().includes(q) ||
+          (s.os || "").toLowerCase().includes(q),
+      );
+    }
+    return [...filtered].sort((a, b) => {
+      let comparison = 0;
+      switch (sortField) {
+        case "name":
+          comparison = a.name.localeCompare(b.name);
+          break;
+        case "region":
+          comparison = (a.region || "").localeCompare(b.region || "");
+          break;
+        case "os":
+          comparison = (a.os || "").localeCompare(b.os || "");
+          break;
+        case "status":
+          const aStatus = a.netbirdConnected ? 1 : 0;
+          const bStatus = b.netbirdConnected ? 1 : 0;
+          comparison = aStatus - bStatus;
+          break;
+        case "lastSeen":
+        default:
+          const aTime = a.lastSeen ? new Date(a.lastSeen).getTime() : 0;
+          const bTime = b.lastSeen ? new Date(b.lastSeen).getTime() : 0;
+          comparison = aTime - bTime;
+          break;
+      }
+      return sortDirection === "asc" ? comparison : -comparison;
+    });
+  }, [sites, query, sortField, sortDirection]);
 
   // Smart error message
   const errorInfo = useMemo(() => classifyError(error), [error]);
@@ -149,42 +207,114 @@ function TunnelsPage() {
           <Tile label="Source" value="NetBird" />
         </div>
 
-        <div className="mt-8 border border-border bg-panel">
-          <header className="flex items-center justify-between border-b border-border px-4 py-3">
-            <h2 className="font-mono text-[10px] font-bold uppercase tracking-widest text-dim">
-              Peer Roster
-            </h2>
-            <span className="font-mono text-[10px] uppercase tracking-widest text-dim">
-              {sites.length} peers
-            </span>
-          </header>
+        {/* Search bar */}
+        <div className="mt-8 mb-4 flex items-center gap-2 border border-border bg-panel p-3">
+          <Search className="w-4 h-4 text-dim ml-2" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search peers..."
+            className="min-w-[220px] flex-1 bg-transparent px-2 py-1 font-mono text-[11px] text-foreground outline-hidden"
+          />
+          {query && (
+            <button
+              type="button"
+              onClick={() => setQuery("")}
+              className="text-dim hover:text-foreground"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+
+        <div className="border border-border bg-panel">
+          {/* Column Headers */}
+          <div className="hidden border-b border-border bg-muted px-4 py-2 md:grid md:grid-cols-12">
+            <button
+              type="button"
+              onClick={() => handleSort("name")}
+              className="col-span-3 flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-dim hover:text-foreground transition-colors text-left"
+            >
+              <Server className="w-3 h-3" />
+              Name
+              {getSortIcon("name")}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSort("region")}
+              className="col-span-2 flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-dim hover:text-foreground transition-colors text-left"
+            >
+              <MapPin className="w-3 h-3" />
+              Region
+              {getSortIcon("region")}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSort("os")}
+              className="col-span-3 flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-dim hover:text-foreground transition-colors text-left"
+            >
+              <Monitor className="w-3 h-3" />
+              Type
+              {getSortIcon("os")}
+            </button>
+            <div className="col-span-2 flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-dim">
+              <Link2 className="w-3 h-3" />
+              Protocol
+            </div>
+            <button
+              type="button"
+              onClick={() => handleSort("status")}
+              className="col-span-2 flex items-center justify-end gap-2 font-mono text-[10px] uppercase tracking-widest text-dim hover:text-foreground transition-colors text-right"
+            >
+              <Wifi className="w-3 h-3" />
+              Status
+              {getSortIcon("status")}
+            </button>
+          </div>
           <div className="divide-y divide-border">
-            {loading && sites.length === 0 && (
+            {loading && filteredSites.length === 0 && (
               <div className="px-4 py-12 text-center font-mono text-[11px] text-dim">
                 Connecting to NetBird API…
               </div>
             )}
-            {sites.map((s) => (
+            {filteredSites.length === 0 && !loading && (
+              <div className="px-4 py-12 text-center font-mono text-[11px] text-dim">
+                No peers found
+              </div>
+            )}
+            {filteredSites.map((s) => (
               <div
                 key={s.id}
                 className="grid grid-cols-1 items-center gap-3 px-4 py-3 font-mono text-[11px] md:grid-cols-12"
               >
-                <Link
-                  to="/sites/$siteId"
-                  params={{ siteId: s.id }}
-                  className="col-span-3 truncate text-foreground hover:text-phosphor"
-                >
-                  {s.name}
-                </Link>
-                <div className="col-span-2 text-dim">{s.region}</div>
-                {/* NetBird IP hidden for security */}
-                <div className="col-span-3 text-dim">—</div>
+                <div className="col-span-3 flex items-center gap-3">
+                  <div className="bg-muted p-2 rounded-md">
+                    <Server className="w-4 h-4 text-muted-foreground" />
+                  </div>
+                  <Link
+                    to="/sites/$siteId"
+                    params={{ siteId: s.id }}
+                    className="truncate text-foreground hover:text-phosphor"
+                  >
+                    {s.name}
+                  </Link>
+                </div>
+                <div className="col-span-2 text-dim">{s.region || "—"}</div>
+                <div className="col-span-3 text-dim">
+                  {s.os ? s.os.replace("Darwin", "macOS") : "Infrastructure"}
+                </div>
                 <div className="col-span-2 text-dim">UDP 51820</div>
                 <div className="col-span-2 text-right">
                   {s.netbirdConnected ? (
-                    <span className="text-phosphor">● Connected</span>
+                    <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-phosphor/10 text-phosphor">
+                      <Wifi className="w-3 h-3" />
+                      Connected
+                    </span>
                   ) : (
-                    <span className="text-alert">● Down</span>
+                    <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-alert/10 text-alert">
+                      <WifiOff className="w-3 h-3" />
+                      Down
+                    </span>
                   )}
                 </div>
               </div>

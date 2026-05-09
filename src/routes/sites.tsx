@@ -1,5 +1,21 @@
 import { createFileRoute, Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState, useEffect, useCallback, useRef, memo } from "react";
+
+// Helper to check if OS is a device (Android, iOS, Windows, macOS, Linux - user devices)
+const isDeviceOS = (os?: string) => {
+  if (!os) return false;
+  const osLower = os.toLowerCase();
+  return (
+    osLower.includes("android") ||
+    osLower.includes("ios") ||
+    osLower.includes("windows") ||
+    osLower.includes("mac") ||
+    osLower.includes("darwin") ||
+    osLower.includes("ubuntu") ||
+    osLower.includes("linux")
+  );
+};
+
 import { TopNav } from "@/components/TopNav";
 import { StatusDot, statusLabel, StatusBadge } from "@/components/StatusIndicator";
 import { OSIcon } from "@/components/OSIcon";
@@ -49,6 +65,9 @@ import {
   ArrowDown,
   Trash2,
   AlertTriangle,
+  Search,
+  Activity,
+  MapPin,
 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { updateNetbirdPeer, probeHttp, type ProbeResult, listNetbirdPeers, listNetbirdGroups, createNetbirdGroup } from "@/lib/netbird.functions";
@@ -108,20 +127,26 @@ export const Route = createFileRoute("/sites")({
   component: SitesPage,
 });
 
-const FILTERS: Array<{ id: "all" | SiteStatus; label: string }> = [
-  { id: "all", label: "All" },
-  { id: "online", label: "Online" },
-  { id: "offline", label: "Offline" },
-];
+type SortField = "name" | "region" | "os" | "status" | "uptime" | "latency" | "lastSeen";
+type SortDirection = "asc" | "desc";
 
 // Memoized site row to prevent unnecessary re-renders
 const SiteRow = memo(({ site, onClick, onDelete }: { site: Site; onClick: () => void; onDelete: (e: React.MouseEvent) => void }) => {
+  const getStatusIcon = () => {
+    if (site.status === "online") return <Check className="w-3 h-3" />;
+    if (site.status === "degraded") return <Activity className="w-3 h-3" />;
+    return <X className="w-3 h-3" />;
+  };
+
   return (
     <div
-      className="grid grid-cols-1 items-center gap-4 px-4 py-4 transition-colors hover:bg-panel-2 md:grid-cols-12 cursor-pointer"
+      className="grid grid-cols-1 items-center gap-4 px-4 py-4 transition-colors hover:bg-panel-2 md:grid-cols-12 cursor-pointer border-b border-border/50"
+      onClick={onClick}
     >
       <div className="col-span-3 flex items-center gap-3" onClick={onClick}>
-        <StatusDot status={site.status} />
+        <div className="bg-muted p-2 rounded-md">
+          <Server className="w-4 h-4 text-muted-foreground" />
+        </div>
         <div className="min-w-0">
           <span className="block truncate text-sm font-medium text-foreground hover:text-phosphor">
             {site.name}
@@ -170,33 +195,49 @@ function SitesPage() {
   const deviceNames = useMemo(() => netbirdSites.map(s => s.name), [netbirdSites]);
   const { uptimes, loading: uptimeLoading } = useAllSitesUptime(deviceNames, 30);
   // Merge sites with accurate uptime data
+  // Filter out devices - they have their own page
   const sites = useMemo(() => {
-    return netbirdSites.map(site => {
-      const uptimeData = uptimes.get(site.name);
-      if (uptimeData && !uptimeData.loading) {
-        return {
-          ...site,
-          uptime: uptimeData.uptime,
-          accurateUptime: true,
-        };
-      }
-      return site;
-    });
+    return netbirdSites
+      .filter(site => !isDeviceOS(site.os)) // Exclude user devices
+      .map(site => {
+        const uptimeData = uptimes.get(site.name);
+        if (uptimeData && !uptimeData.loading) {
+          return {
+            ...site,
+            uptime: uptimeData.uptime,
+            accurateUptime: true,
+          };
+        }
+        return site;
+      });
   }, [netbirdSites, uptimes]);
   
   const { removeSite } = useSites();
   const location = useLocation();
   const search = Route.useSearch();
   const navigate = useNavigate();
-  const [filter, setFilter] = useState<"all" | SiteStatus>("all");
   const [query, setQuery] = useState("");
   const [selectedSite, setSelectedSite] = useState<Site | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAddSiteModalOpen, setIsAddSiteModalOpen] = useState(false);
-  const [sortBy, setSortBy] = useState<"lastSeen">("lastSeen");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [sortField, setSortField] = useState<SortField>("lastSeen");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [siteToDelete, setSiteToDelete] = useState<Site | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
+  const getSortIcon = (field: SortField) => {
+    if (sortField !== field) return <ArrowUpDown className="w-3 h-3 text-dim" />;
+    return sortDirection === "asc" ? <ArrowUp className="w-3 h-3 text-phosphor" /> : <ArrowDown className="w-3 h-3 text-phosphor" />;
+  };
 
   // Use a ref to track previous sites to avoid unnecessary iterations
   const prevSitesRef = useRef<Site[]>([]);
@@ -241,18 +282,11 @@ function SitesPage() {
     });
   }, [sites]);
 
-  const filteredSites = useMemo(() => {
-    return sites.filter((s) => {
-      if (filter === "all") return true;
-      return s.status === filter;
-    });
-  }, [sites, filter]);
-
   const searchedSites = useMemo(() => {
-    let sites = filteredSites;
+    let filtered = sites;
     if (query) {
       const q = query.toLowerCase();
-      sites = filteredSites.filter(
+      filtered = sites.filter(
         (s) =>
           s.name.toLowerCase().includes(q) ||
           s.hostname.toLowerCase().includes(q) ||
@@ -260,13 +294,37 @@ function SitesPage() {
           s.netbirdIp.toLowerCase().includes(q),
       );
     }
-    // Sort by lastSeen
-    return [...sites].sort((a, b) => {
-      const aTime = a.lastSeen ? new Date(a.lastSeen).getTime() : 0;
-      const bTime = b.lastSeen ? new Date(b.lastSeen).getTime() : 0;
-      return sortOrder === "desc" ? bTime - aTime : aTime - bTime;
+    return [...filtered].sort((a, b) => {
+      let comparison = 0;
+      switch (sortField) {
+        case "name":
+          comparison = a.name.localeCompare(b.name);
+          break;
+        case "region":
+          comparison = (a.region || "").localeCompare(b.region || "");
+          break;
+        case "os":
+          comparison = (a.os || "").localeCompare(b.os || "");
+          break;
+        case "status":
+          comparison = a.status.localeCompare(b.status);
+          break;
+        case "uptime":
+          comparison = (a.uptime || 0) - (b.uptime || 0);
+          break;
+        case "latency":
+          comparison = (a.latencyMs || 0) - (b.latencyMs || 0);
+          break;
+        case "lastSeen":
+        default:
+          const aTime = a.lastSeen ? new Date(a.lastSeen).getTime() : 0;
+          const bTime = b.lastSeen ? new Date(b.lastSeen).getTime() : 0;
+          comparison = aTime - bTime;
+          break;
+      }
+      return sortDirection === "asc" ? comparison : -comparison;
     });
-  }, [filteredSites, query, sortOrder]);
+  }, [sites, query, sortField, sortDirection]);
 
   // If no API key, show the gate
   if (!hasApiKey) {
@@ -350,70 +408,73 @@ function SitesPage() {
           </div>
         )}
 
-        {/* Filter bar */}
-        <div className="mb-4 flex flex-wrap items-center gap-2 border border-border bg-panel p-3">
+        {/* Search bar */}
+        <div className="mb-4 flex items-center gap-2 border border-border bg-panel p-3">
+          <Search className="w-4 h-4 text-dim ml-2" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by name, hostname, region, IP…"
-            className="min-w-[220px] flex-1 border border-border bg-void px-3 py-1.5 font-mono text-[11px] text-foreground outline-hidden focus:border-phosphor"
+            placeholder="Search sites..."
+            className="min-w-[220px] flex-1 bg-transparent px-2 py-1 font-mono text-[11px] text-foreground outline-hidden"
           />
-          <div className="flex flex-wrap gap-1">
-            {FILTERS.map((f) => {
-              const active = filter === f.id;
-              return (
-                <button
-                  key={f.id}
-                  type="button"
-                  onClick={() => setFilter(f.id)}
-                  className={`border px-3 py-1.5 font-mono text-[10px] uppercase tracking-widest transition-colors ${
-                    active
-                      ? "border-phosphor bg-phosphor/10 text-phosphor"
-                      : "border-border bg-void text-dim hover:text-foreground"
-                  }`}
-                >
-                  {f.label}
-                </button>
-              );
-            })}
-          </div>
-          <div className="flex items-center gap-1 border-l border-border pl-2">
-            <span className="font-mono text-[10px] uppercase tracking-widest text-dim mr-1">Sort:</span>
+          {query && (
             <button
               type="button"
-              onClick={() => setSortOrder("asc")}
-              className={`border px-2 py-1.5 font-mono text-[10px] uppercase tracking-widest transition-colors ${
-                sortOrder === "asc"
-                  ? "border-phosphor bg-phosphor/10 text-phosphor"
-                  : "border-border bg-void text-dim hover:text-foreground"
-              }`}
-              title="Sort by last seen (oldest first)"
+              onClick={() => setQuery("")}
+              className="text-dim hover:text-foreground"
             >
-              <ArrowUp className="w-3 h-3 inline" />
+              <X className="w-4 h-4" />
             </button>
-            <button
-              type="button"
-              onClick={() => setSortOrder("desc")}
-              className={`border px-2 py-1.5 font-mono text-[10px] uppercase tracking-widest transition-colors ${
-                sortOrder === "desc"
-                  ? "border-phosphor bg-phosphor/10 text-phosphor"
-                  : "border-border bg-void text-dim hover:text-foreground"
-              }`}
-              title="Sort by last seen (newest first)"
-            >
-              <ArrowDown className="w-3 h-3 inline" />
-            </button>
-          </div>
+          )}
         </div>
 
         {/* Table */}
         <div className="border border-border bg-panel">
           <div className="hidden grid-cols-12 gap-4 border-b border-border bg-panel-2 px-4 py-2 font-mono text-[10px] uppercase tracking-widest text-dim md:grid">
-            <div className="col-span-3">Site</div>
-            <div className="col-span-2">Region</div>
-            <div className="col-span-1">OS</div>
-            <div className="col-span-2">Status</div>
-            <div className="col-span-2">Last Seen</div>
+            <button
+              type="button"
+              onClick={() => handleSort("name")}
+              className="col-span-3 flex items-center gap-2 hover:text-foreground transition-colors text-left"
+            >
+              <Server className="w-3 h-3" />
+              Site
+              {getSortIcon("name")}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSort("region")}
+              className="col-span-2 flex items-center gap-2 hover:text-foreground transition-colors text-left"
+            >
+              <MapPin className="w-3 h-3" />
+              Region
+              {getSortIcon("region")}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSort("os")}
+              className="col-span-1 flex items-center gap-2 hover:text-foreground transition-colors text-left"
+            >
+              OS
+              {getSortIcon("os")}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSort("status")}
+              className="col-span-2 flex items-center gap-2 hover:text-foreground transition-colors text-left"
+            >
+              <Activity className="w-3 h-3" />
+              Status
+              {getSortIcon("status")}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSort("lastSeen")}
+              className="col-span-2 flex items-center gap-2 hover:text-foreground transition-colors text-left"
+            >
+              <Clock className="w-3 h-3" />
+              Last Seen
+              {getSortIcon("lastSeen")}
+            </button>
             <div className="col-span-2 text-right">Actions</div>
           </div>
           <div className="divide-y divide-border">

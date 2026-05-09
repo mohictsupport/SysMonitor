@@ -2,7 +2,7 @@
 
 A real-time network monitoring dashboard for managing NetBird VPN connections across distributed sites. Built with React, TypeScript, and Electron.
 
-![Version](https://img.shields.io/badge/version-1.7.0-blue)
+![Version](https://img.shields.io/badge/version-2.0.0-blue)
 ![Electron](https://img.shields.io/badge/Electron-33.0.0-47848F)
 ![React](https://img.shields.io/badge/React-19.2.0-61DAFB)
 ![License](https://img.shields.io/badge/License-UNLICENSED-red)
@@ -282,7 +282,15 @@ git push origin v1.1.0
 $env:GH_TOKEN="your_token"
 npm run electron:build
 ```
-
+##DEPLOY SCRIPT
+# Default: bump patch version (2.0.0 → 2.0.1)
+.\deploy.ps1
+ 
+# Bump minor version (2.0.0 → 2.1.0)
+.\deploy.ps1 -Bump minor
+ 
+# Bump major version (2.0.0 → 3.0.0)
+.\deploy.ps1 -Bump major
 electron-builder will automatically:
 - Create a GitHub Release for the tag
 - Upload both .exe files
@@ -471,7 +479,7 @@ For issues and feature requests:
 
 **Built with ❤️ by Ministry of Health (MOH)**
 
-**SysMonitor** • Version 1.7.0 • © 2025-2026
+**SysMonitor** • Version 2.0.0 • © 2025-2026
 
 All Rights Reserved.
 

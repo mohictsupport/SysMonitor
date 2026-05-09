@@ -16,6 +16,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as EventsRouteImport } from './routes/events'
+import { Route as DevicesRouteImport } from './routes/devices'
 import { Route as AlertingRouteImport } from './routes/alerting'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SitesNewRouteImport } from './routes/sites.new'
@@ -56,6 +57,11 @@ const EventsRoute = EventsRouteImport.update({
   path: '/events',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DevicesRoute = DevicesRouteImport.update({
+  id: '/devices',
+  path: '/devices',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AlertingRoute = AlertingRouteImport.update({
   id: '/alerting',
   path: '/alerting',
@@ -80,6 +86,7 @@ const SitesSiteIdRoute = SitesSiteIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/alerting': typeof AlertingRoute
+  '/devices': typeof DevicesRoute
   '/events': typeof EventsRoute
   '/login': typeof LoginRoute
   '/reports': typeof ReportsRoute
@@ -93,6 +100,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/alerting': typeof AlertingRoute
+  '/devices': typeof DevicesRoute
   '/events': typeof EventsRoute
   '/login': typeof LoginRoute
   '/reports': typeof ReportsRoute
@@ -107,6 +115,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/alerting': typeof AlertingRoute
+  '/devices': typeof DevicesRoute
   '/events': typeof EventsRoute
   '/login': typeof LoginRoute
   '/reports': typeof ReportsRoute
@@ -122,6 +131,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/alerting'
+    | '/devices'
     | '/events'
     | '/login'
     | '/reports'
@@ -135,6 +145,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/alerting'
+    | '/devices'
     | '/events'
     | '/login'
     | '/reports'
@@ -148,6 +159,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/alerting'
+    | '/devices'
     | '/events'
     | '/login'
     | '/reports'
@@ -162,6 +174,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AlertingRoute: typeof AlertingRoute
+  DevicesRoute: typeof DevicesRoute
   EventsRoute: typeof EventsRoute
   LoginRoute: typeof LoginRoute
   ReportsRoute: typeof ReportsRoute
@@ -222,6 +235,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EventsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/devices': {
+      id: '/devices'
+      path: '/devices'
+      fullPath: '/devices'
+      preLoaderRoute: typeof DevicesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/alerting': {
       id: '/alerting'
       path: '/alerting'
@@ -268,6 +288,7 @@ const SitesRouteWithChildren = SitesRoute._addFileChildren(SitesRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AlertingRoute: AlertingRoute,
+  DevicesRoute: DevicesRoute,
   EventsRoute: EventsRoute,
   LoginRoute: LoginRoute,
   ReportsRoute: ReportsRoute,

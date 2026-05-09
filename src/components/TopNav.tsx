@@ -15,6 +15,7 @@ interface TopNavProps {
 const NAV = [
   { to: "/", label: "Dashboard" },
   { to: "/sites", label: "Sites" },
+  { to: "/devices", label: "Devices" },
   { to: "/tunnels", label: "Tunnels" },
   { to: "/events", label: "Events" },
   { to: "/reports", label: "Reports" },

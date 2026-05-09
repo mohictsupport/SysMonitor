@@ -72,35 +72,70 @@ function IndexPage() {
     });
   }, [sites, uptimes]);
 
-  const filteredSites = useMemo(() => {
-    if (siteFilter === "all") return sitesWithAccurateUptime;
-    return sitesWithAccurateUptime.filter((s) => s.status === siteFilter);
-  }, [sitesWithAccurateUptime, siteFilter]);
-
-  // Helper to check if OS is a device (Android, iOS, Windows)
+  // Helper to check if OS is a device (Android, iOS, Windows, macOS, Linux - user devices)
   const isDeviceOS = (os?: string) => {
     if (!os) return false;
     const osLower = os.toLowerCase();
-    return osLower.includes("android") || osLower.includes("ios") || osLower.includes("windows");
+    return (
+      osLower.includes("android") ||
+      osLower.includes("ios") ||
+      osLower.includes("windows") ||
+      osLower.includes("mac") ||
+      osLower.includes("darwin") ||
+      osLower.includes("ubuntu") ||
+      osLower.includes("linux")
+    );
   };
 
-  // Group sites by region (Devices group for Android/iOS/Windows)
+  // Filter out devices - only show infrastructure sites on dashboard
+  const infrastructureSites = useMemo(() => {
+    return sitesWithAccurateUptime.filter((s) => !isDeviceOS(s.os));
+  }, [sitesWithAccurateUptime]);
+
+  // Stats - only count infrastructure sites (devices excluded)
+  const stats = useMemo(() => {
+    const total = infrastructureSites.length || 1;
+    const online = infrastructureSites.filter((s) => s.status === "online").length;
+    const degraded = infrastructureSites.filter((s) => s.status === "degraded").length;
+    const offline = infrastructureSites.filter((s) => s.status === "offline").length;
+    // Tunnels count includes devices but displayed separately
+    const tunnels = sitesWithAccurateUptime.filter((s) => s.netbirdConnected).length;
+    const latencyPool = infrastructureSites.filter((s) => s.status !== "offline" && s.latencyMs > 0);
+    const avgLatency =
+      latencyPool.length > 0
+        ? latencyPool.reduce((acc, s) => acc + s.latencyMs, 0) / latencyPool.length
+        : 0;
+    const avgUptime = infrastructureSites.reduce((acc, s) => acc + s.uptime, 0) / total;
+    
+    return {
+      online,
+      degraded,
+      offline,
+      tunnels,
+      total: infrastructureSites.length,
+      avgLatency: Math.round(avgLatency * 10) / 10,
+      uptime: avgUptime,
+      uptimeLoading,
+    };
+  }, [infrastructureSites, sitesWithAccurateUptime, uptimeLoading]);
+
+  const filteredSites = useMemo(() => {
+    if (siteFilter === "all") return infrastructureSites;
+    return infrastructureSites.filter((s) => s.status === siteFilter);
+  }, [infrastructureSites, siteFilter]);
+
+  // Group sites by region (devices excluded - they have their own page)
   const sitesByRegion = useMemo(() => {
     const grouped: Record<string, Site[]> = {};
     filteredSites.forEach(site => {
-      // Check if it's a device OS (Android, iOS, Windows)
-      const region = isDeviceOS(site.os) ? "Devices" : (site.region || "Other");
+      const region = site.region || "Other";
       if (!grouped[region]) {
         grouped[region] = [];
       }
       grouped[region].push(site);
     });
     // Sort regions in the predefined order, then any others alphabetically
-    // Put "Devices" last (after all other regions)
     const sortedRegions: Array<{ name: string; sites: Site[] }> = [];
-    // Save Devices for later
-    const devicesGroup = grouped["Devices"];
-    delete grouped["Devices"];
     // Add predefined regions first
     REGIONS.forEach(region => {
       if (grouped[region]) {
@@ -112,10 +147,6 @@ function IndexPage() {
     Object.keys(grouped).sort().forEach(region => {
       sortedRegions.push({ name: region, sites: grouped[region] });
     });
-    // Add Devices group last if it exists
-    if (devicesGroup) {
-      sortedRegions.push({ name: "Devices", sites: devicesGroup });
-    }
     return sortedRegions;
   }, [filteredSites]);
 
@@ -137,33 +168,6 @@ function IndexPage() {
       setExpandedRegions(new Set(sitesByRegion.map(r => r.name)));
     }
   }, [sitesByRegion]);
-
-  const stats = useMemo(() => {
-    const total = sitesWithAccurateUptime.length || 1;
-    const online = sitesWithAccurateUptime.filter((s) => s.status === "online").length;
-    const degraded = sitesWithAccurateUptime.filter((s) => s.status === "degraded").length;
-    const offline = sitesWithAccurateUptime.filter((s) => s.status === "offline").length;
-    const tunnels = sitesWithAccurateUptime.filter((s) => s.netbirdConnected).length;
-    const latencyPool = sitesWithAccurateUptime.filter((s) => s.status !== "offline" && s.latencyMs > 0);
-    const avgLatency =
-      latencyPool.length > 0
-        ? latencyPool.reduce((acc, s) => acc + s.latencyMs, 0) / latencyPool.length
-        : 0;
-    
-    // Use accurate uptime from Firestore if available, fallback to local calculation
-    const avgUptime = sitesWithAccurateUptime.reduce((acc, s) => acc + s.uptime, 0) / total;
-    
-    return {
-      online,
-      degraded,
-      offline,
-      tunnels,
-      total: sitesWithAccurateUptime.length,
-      avgLatency: Math.round(avgLatency * 10) / 10,
-      uptime: avgUptime,
-      uptimeLoading,
-    };
-  }, [sitesWithAccurateUptime, uptimeLoading]);
 
   // If no API key, show the gate
   if (!hasApiKey) {

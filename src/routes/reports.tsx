@@ -2,6 +2,21 @@ import { createFileRoute } from "@tanstack/react-router";
 import { TopNav } from "@/components/TopNav";
 import { useState, useMemo } from "react";
 import { useNetbirdSites } from "@/lib/use-netbird";
+
+// Helper to check if OS is a device (Android, iOS, Windows, macOS, Linux - user devices)
+const isDeviceOS = (os?: string) => {
+  if (!os) return false;
+  const osLower = os.toLowerCase();
+  return (
+    osLower.includes("android") ||
+    osLower.includes("ios") ||
+    osLower.includes("windows") ||
+    osLower.includes("mac") ||
+    osLower.includes("darwin") ||
+    osLower.includes("ubuntu") ||
+    osLower.includes("linux")
+  );
+};
 import { useHasApiKey } from "@/lib/auth-utils";
 import { ApiKeyGate } from "@/components/ApiKeyGate";
 import {
@@ -101,10 +116,26 @@ function ReportsPage() {
   // Fetch daily stats from Firestore (real-time via onSnapshot)
   const { stats: dailyStats, loading, error } = useDailyStats(startDate, endDate);
 
+  // Build set of device names that are user devices (to exclude from reports)
+  const deviceNamesSet = useMemo(() => {
+    const deviceNames = new Set<string>();
+    sites.forEach(site => {
+      if (isDeviceOS(site.os)) {
+        deviceNames.add(site.name);
+      }
+    });
+    return deviceNames;
+  }, [sites]);
+
+  // Filter daily stats to exclude devices (only infrastructure sites)
+  const filteredDailyStats = useMemo(() => {
+    return dailyStats.filter(stat => !deviceNamesSet.has(stat.device_name));
+  }, [dailyStats, deviceNamesSet]);
+
   // Aggregate data based on report type
   const reportData = useMemo((): SiteDetails[] => {
     if (reportType === "daily") {
-      return dailyStats.map((stat) => ({
+      return filteredDailyStats.map((stat) => ({
         label: stat.date,
         device_name: stat.device_name,
         uptime: stat.uptime,
@@ -114,7 +145,7 @@ function ReportsPage() {
     }
 
     if (reportType === "monthly") {
-      return aggregateMonthly(dailyStats).map((m: MonthlySiteStats) => {
+      return aggregateMonthly(filteredDailyStats).map((m: MonthlySiteStats) => {
         // Format "2024-01" to "January 2024"
         const [year, monthNum] = m.month.split('-');
         const date = new Date(parseInt(year), parseInt(monthNum) - 1, 1);
@@ -129,7 +160,7 @@ function ReportsPage() {
       });
     }
 
-    return aggregateQuarterly(dailyStats).map((q: QuarterlySiteStats) => {
+    return aggregateQuarterly(filteredDailyStats).map((q: QuarterlySiteStats) => {
       // Format "2024-Q1" to "Q1 2024 (Jan-Mar)"
       const [year, quarter] = q.quarter.split('-');
       const quarterNum = parseInt(quarter.replace('Q', ''));
@@ -150,22 +181,22 @@ function ReportsPage() {
     });
   }, [dailyStats, reportType]);
 
-  // Calculate overall stats
+  // Calculate overall stats (excluding devices)
   const overallStats = useMemo(() => {
-    if (dailyStats.length === 0) return null;
+    if (filteredDailyStats.length === 0) return null;
 
-    const totalChecks = dailyStats.reduce((sum, s) => sum + s.total_checks, 0);
-    const onlineChecks = dailyStats.reduce((sum, s) => sum + s.online_checks, 0);
-    const uniqueSites = new Set(dailyStats.map((s) => s.device_id)).size;
+    const totalChecks = filteredDailyStats.reduce((sum, s) => sum + s.total_checks, 0);
+    const onlineChecks = filteredDailyStats.reduce((sum, s) => sum + s.online_checks, 0);
+    const uniqueSites = new Set(filteredDailyStats.map((s) => s.device_id)).size;
 
     return {
       avgUptime: totalChecks > 0 ? Math.round((onlineChecks / totalChecks) * 1000) / 10 : 0,
       totalChecks,
       onlineChecks,
       uniqueSites,
-      daysCovered: dailyStats.length / uniqueSites || 0,
+      daysCovered: filteredDailyStats.length / uniqueSites || 0,
     };
-  }, [dailyStats]);
+  }, [filteredDailyStats]);
 
   // Get trend data for selected site - Daily
   const getSiteTrendData = useMemo(() => {
