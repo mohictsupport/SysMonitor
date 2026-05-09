@@ -149,18 +149,27 @@ export function useNetbirdPeers() {
           const cached = loadCachedSites();
           if (cached && Date.now() - cached.timestamp < CACHE_MAX_AGE_MS) {
             console.log("[Cache] Using cached data as fallback (empty API response)");
-            const peers: NetbirdPeerLite[] = cached.sites.map((site) => ({
-              id: site.id,
-              name: site.name,
-              hostname: site.hostname,
-              netbirdIp: site.netbirdIp,
-              region: site.region,
-              connected: site.status === "online",
-              lastSeen: site.lastSeen ?? null,
-              os: "",
-              version: "",
-              groups: site.tags,
-            }));
+            const peers: NetbirdPeerLite[] = cached.sites.map((site) => {
+              let name = site.name;
+              const osLower = (site.os || "").toLowerCase();
+              if (osLower.includes("pfsense") || osLower.includes("freebsd")) {
+                if (!name || name === site.id || name.toLowerCase() === "pfsense" || name.toLowerCase() === "freebsd" || (site.hostname || "").toLowerCase() === "pfsense") {
+                  name = "pfSense Router";
+                }
+              }
+              return {
+                id: site.id,
+                name,
+                hostname: site.hostname,
+                netbirdIp: site.netbirdIp,
+                region: site.region,
+                connected: site.status === "online",
+                lastSeen: site.lastSeen ?? null,
+                os: site.os || "",
+                version: site.version || "",
+                groups: site.tags,
+              };
+            });
             return { peers, error: result.error };
           }
         } else {
@@ -169,18 +178,27 @@ export function useNetbirdPeers() {
           const cached = loadCachedSites();
           if (cached && Date.now() - cached.timestamp < CACHE_MAX_AGE_MS) {
             console.log("[Cache] Using cached data as fallback (API error)");
-            const peers: NetbirdPeerLite[] = cached.sites.map((site) => ({
-              id: site.id,
-              name: site.name,
-              hostname: site.hostname,
-              netbirdIp: site.netbirdIp,
-              region: site.region,
-              connected: site.status === "online",
-              lastSeen: site.lastSeen ?? null,
-              os: "",
-              version: "",
-              groups: site.tags,
-            }));
+            const peers: NetbirdPeerLite[] = cached.sites.map((site) => {
+              let name = site.name;
+              const osLower = (site.os || "").toLowerCase();
+              if (osLower.includes("pfsense") || osLower.includes("freebsd")) {
+                if (!name || name === site.id || name.toLowerCase() === "pfsense" || name.toLowerCase() === "freebsd" || (site.hostname || "").toLowerCase() === "pfsense") {
+                  name = "pfSense Router";
+                }
+              }
+              return {
+                id: site.id,
+                name,
+                hostname: site.hostname,
+                netbirdIp: site.netbirdIp,
+                region: site.region,
+                connected: site.status === "online",
+                lastSeen: site.lastSeen ?? null,
+                os: site.os || "",
+                version: site.version || "",
+                groups: site.tags,
+              };
+            });
             return { peers, error: result.error };
           }
         }
@@ -191,18 +209,27 @@ export function useNetbirdPeers() {
         const cached = loadCachedSites();
         if (cached && Date.now() - cached.timestamp < CACHE_MAX_AGE_MS) {
           console.log("[Cache] Using cached data as fallback (exception)");
-          const peers: NetbirdPeerLite[] = cached.sites.map((site) => ({
-            id: site.id,
-            name: site.name,
-            hostname: site.hostname,
-            netbirdIp: site.netbirdIp,
-            region: site.region,
-            connected: site.status === "online",
-            lastSeen: site.lastSeen ?? null,
-            os: "",
-            version: "",
-            groups: site.tags,
-          }));
+          const peers: NetbirdPeerLite[] = cached.sites.map((site) => {
+            let name = site.name;
+            const osLower = (site.os || "").toLowerCase();
+            if (osLower.includes("pfsense") || osLower.includes("freebsd")) {
+              if (!name || name === site.id || name.toLowerCase() === "pfsense" || name.toLowerCase() === "freebsd" || (site.hostname || "").toLowerCase() === "pfsense") {
+                name = "pfSense Router";
+              }
+            }
+            return {
+              id: site.id,
+              name,
+              hostname: site.hostname,
+              netbirdIp: site.netbirdIp,
+              region: site.region,
+              connected: site.status === "online",
+              lastSeen: site.lastSeen ?? null,
+              os: site.os || "",
+              version: site.version || "",
+              groups: site.tags,
+            };
+          });
           return { peers, error: error instanceof Error ? error.message : "Network error" };
         }
         // No cache available - rethrow the error
@@ -225,18 +252,31 @@ export function useNetbirdPeers() {
       const cached = loadCachedSites();
       if (cached && Date.now() - cached.timestamp < CACHE_MAX_AGE_MS) {
         console.log("[Cache] Using cached data as initialData");
-        const peers: NetbirdPeerLite[] = cached.sites.map((site) => ({
-          id: site.id,
-          name: site.name,
-          hostname: site.hostname,
-          netbirdIp: site.netbirdIp,
-          region: site.region,
-          connected: site.status === "online",
-          lastSeen: site.lastSeen ?? null,
-          os: "",
-          version: "",
-          groups: site.tags,
-        }));
+        const peers: NetbirdPeerLite[] = cached.sites.map((site) => {
+          // Apply pfSense default name logic for cached data too
+          let name = site.name;
+          const osLower = (site.os || "").toLowerCase();
+          const isPfSense = osLower.includes("pfsense") || osLower.includes("freebsd");
+          if (isPfSense) {
+            const nameLower = (name || "").toLowerCase();
+            const hostnameLower = (site.hostname || "").toLowerCase();
+            if (!name || name === site.id || nameLower === "pfsense" || nameLower === "freebsd" || hostnameLower === "pfsense" || hostnameLower === "freebsd") {
+              name = "pfSense Router";
+            }
+          }
+          return {
+            id: site.id,
+            name,
+            hostname: site.hostname,
+            netbirdIp: site.netbirdIp,
+            region: site.region,
+            connected: site.status === "online",
+            lastSeen: site.lastSeen ?? null,
+            os: site.os || "",
+            version: site.version || "",
+            groups: site.tags,
+          };
+        });
         return { peers, error: null };
       }
       return undefined;
@@ -263,18 +303,31 @@ export function useNetbirdPeers() {
     if (cached && Date.now() - cached.timestamp < CACHE_MAX_AGE_MS) {
       console.log("[Cache] Cache is valid, hydrating query client...");
       // Convert cached sites back to peers format
-      const peers: NetbirdPeerLite[] = cached.sites.map((site) => ({
-        id: site.id,
-        name: site.name,
-        hostname: site.hostname,
-        netbirdIp: site.netbirdIp,
-        region: site.region,
-        connected: site.status === "online",
-        lastSeen: site.lastSeen ?? null,
-        os: "",
-        version: "",
-        groups: site.tags,
-      }));
+      const peers: NetbirdPeerLite[] = cached.sites.map((site) => {
+        // Apply pfSense default name logic
+        let name = site.name;
+        const osLower = (site.os || "").toLowerCase();
+        const isPfSense = osLower.includes("pfsense") || osLower.includes("freebsd");
+        if (isPfSense) {
+          const nameLower = (name || "").toLowerCase();
+          const hostnameLower = (site.hostname || "").toLowerCase();
+          if (!name || name === site.id || nameLower === "pfsense" || nameLower === "freebsd" || hostnameLower === "pfsense" || hostnameLower === "freebsd") {
+            name = "pfSense Router";
+          }
+        }
+        return {
+          id: site.id,
+          name,
+          hostname: site.hostname,
+          netbirdIp: site.netbirdIp,
+          region: site.region,
+          connected: site.status === "online",
+          lastSeen: site.lastSeen ?? null,
+          os: site.os || "",
+          version: site.version || "",
+          groups: site.tags,
+        };
+      });
 
       // Set cached data in query client
       queryClient.setQueryData(["netbird", "peers"], { peers, error: null });

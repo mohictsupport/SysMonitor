@@ -57,7 +57,11 @@ export function OSIcon({ os = "", size = "sm", showLabel = false }: OSIconProps)
     );
   }
 
-  return <Icon className={`${sizeClasses[size]} ${colorClass}`} />;
+  return (
+    <span title={os || "Unknown OS"} className="inline-flex">
+      <Icon className={`${sizeClasses[size]} ${colorClass}`} />
+    </span>
+  );
 }
 
 // Get OS label only (without icon)

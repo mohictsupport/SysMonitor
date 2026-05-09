@@ -96,14 +96,12 @@ function IndexPage() {
       grouped[region].push(site);
     });
     // Sort regions in the predefined order, then any others alphabetically
-    // Put "Devices" first if it exists
+    // Put "Devices" last (after all other regions)
     const sortedRegions: Array<{ name: string; sites: Site[] }> = [];
-    // Add Devices first if it exists
-    if (grouped["Devices"]) {
-      sortedRegions.push({ name: "Devices", sites: grouped["Devices"] });
-      delete grouped["Devices"];
-    }
-    // Then add predefined regions
+    // Save Devices for later
+    const devicesGroup = grouped["Devices"];
+    delete grouped["Devices"];
+    // Add predefined regions first
     REGIONS.forEach(region => {
       if (grouped[region]) {
         sortedRegions.push({ name: region, sites: grouped[region] });
@@ -114,6 +112,10 @@ function IndexPage() {
     Object.keys(grouped).sort().forEach(region => {
       sortedRegions.push({ name: region, sites: grouped[region] });
     });
+    // Add Devices group last if it exists
+    if (devicesGroup) {
+      sortedRegions.push({ name: "Devices", sites: devicesGroup });
+    }
     return sortedRegions;
   }, [filteredSites]);
 

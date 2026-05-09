@@ -73,6 +73,28 @@ async function authHeaders(): Promise<Record<string, string>> {
 }
 
 function mapPeer(p: NetbirdPeer): NetbirdPeerLite {
+  // Auto-detect firewall/pfSense devices
+  const osLower = (p.os || "").toLowerCase();
+  const hostnameLower = (p.hostname || "").toLowerCase();
+  const nameLower = (p.name || "").toLowerCase();
+  
+  // Detect by: OS contains pfsense/freebsd, OR hostname contains pfsense/fw/mohnet patterns, OR name suggests firewall
+  const isPfSense = osLower.includes("pfsense") || 
+                    osLower.includes("freebsd") || 
+                    hostnameLower.includes("pfsense") ||
+                    hostnameLower.includes("-fw-") || 
+                    hostnameLower.includes("fw.") ||
+                    hostnameLower.includes("mohnet") ||
+                    hostnameLower.includes("fw") ||
+                    nameLower.includes("firewall") ||
+                    nameLower.includes("pfsense");
+
+  // If OS is empty/whitespace but device appears to be a firewall, set OS to pfSense
+  let os = p.os?.trim() || "—";
+  if (os === "—" && isPfSense) {
+    os = "pfSense";
+  }
+
   // Get group names, filtering out "All" group
   const groupNames = (p.groups || []).map((g) => g.name);
   const nonAllGroups = groupNames.filter((g) => g.toLowerCase() !== "all");
@@ -82,14 +104,42 @@ function mapPeer(p: NetbirdPeer): NetbirdPeerLite {
     [p.country_code, p.city_name].filter(Boolean).join(" · ").toUpperCase() ||
     "UNKNOWN";
 
+  // Get raw name/hostname
+  let name = p.name || p.hostname || p.id;
+  let hostname = p.hostname || p.name || "";
+
+  // If it's a pfSense device and name is generic/empty, default to "pfSense Router"
+  if (isPfSense) {
+    const nameLower = (name || "").toLowerCase();
+    const hostnameLower = (hostname || "").toLowerCase();
+    // Check if name is generic (ID-like or just "pfsense" without being descriptive)
+    if (!name || name === p.id || nameLower === "pfsense" || nameLower === "freebsd" || hostnameLower === "pfsense" || hostnameLower === "freebsd") {
+      name = "pfSense Router";
+      if (!hostname) hostname = "pfsense";
+    }
+  }
+
+  // Final safety: ensure name is never empty
+  if (!name || name.trim() === "") {
+    name = hostname || "pfSense Device";
+  }
+  if (!hostname || hostname.trim() === "") {
+    hostname = name;
+  }
+
+  // Debug final result for pfSense
+  if (isPfSense || hostnameLower.includes("pfsense")) {
+    console.log("[NetBird] pfSense mapped result:", { id: p.id, finalName: name, finalHostname: hostname, os });
+  }
+
   return {
     id: p.id,
-    name: p.name || p.hostname || p.id,
-    hostname: p.hostname || p.name || "",
+    name,
+    hostname,
     netbirdIp: p.ip || "—",
     connected: Boolean(p.connected),
     lastSeen: p.last_seen ?? null,
-    os: p.os || "—",
+    os,
     version: p.version || "—",
     region,
     groups: groupNames,

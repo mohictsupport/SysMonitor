@@ -114,22 +114,40 @@ function ReportsPage() {
     }
 
     if (reportType === "monthly") {
-      return aggregateMonthly(dailyStats).map((m: MonthlySiteStats) => ({
-        label: m.month,
-        device_name: m.device_name,
-        uptime: m.uptime,
-        total_checks: m.total_checks,
-        online_checks: m.online_checks,
-      }));
+      return aggregateMonthly(dailyStats).map((m: MonthlySiteStats) => {
+        // Format "2024-01" to "January 2024"
+        const [year, monthNum] = m.month.split('-');
+        const date = new Date(parseInt(year), parseInt(monthNum) - 1, 1);
+        const formattedMonth = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        return {
+          label: formattedMonth,
+          device_name: m.device_name,
+          uptime: m.uptime,
+          total_checks: m.total_checks,
+          online_checks: m.online_checks,
+        };
+      });
     }
 
-    return aggregateQuarterly(dailyStats).map((q: QuarterlySiteStats) => ({
-      label: q.quarter,
-      device_name: q.device_name,
-      uptime: q.uptime,
-      total_checks: q.total_checks,
-      online_checks: q.online_checks,
-    }));
+    return aggregateQuarterly(dailyStats).map((q: QuarterlySiteStats) => {
+      // Format "2024-Q1" to "Q1 2024 (Jan-Mar)"
+      const [year, quarter] = q.quarter.split('-');
+      const quarterNum = parseInt(quarter.replace('Q', ''));
+      const startMonth = (quarterNum - 1) * 3;
+      const endMonth = startMonth + 2;
+      const startDate = new Date(parseInt(year), startMonth, 1);
+      const endDate = new Date(parseInt(year), endMonth, 1);
+      const startMonthName = startDate.toLocaleDateString('en-US', { month: 'short' });
+      const endMonthName = endDate.toLocaleDateString('en-US', { month: 'short' });
+      const formattedQuarter = `${quarter} ${year} (${startMonthName}-${endMonthName})`;
+      return {
+        label: formattedQuarter,
+        device_name: q.device_name,
+        uptime: q.uptime,
+        total_checks: q.total_checks,
+        online_checks: q.online_checks,
+      };
+    });
   }, [dailyStats, reportType]);
 
   // Calculate overall stats
@@ -310,20 +328,6 @@ function ReportsPage() {
     doc.text(`Generated: ${dateStr} ${timeStr}`, 144, yPos + 24);
     doc.text(`Period: ${dateRange}`, 144, yPos + 29);
     
-    // ===== LOGO IMAGE (centered in header) =====
-    const logoUrl = "/pic.png";
-    const logoBase64 = await loadImageAsBase64(logoUrl);
-    
-    if (logoBase64) {
-      const imgWidth = 32; // mm
-      const imgHeight = 24; // mm
-      const pageWidth = 210;
-      const xPos = (pageWidth - imgWidth) / 2; // Center horizontally
-      const imgYPos = yPos + (headerHeight - imgHeight) / 2; // Center vertically in header
-      
-      doc.addImage(logoBase64, "PNG", xPos, imgYPos, imgWidth, imgHeight);
-    }
-    
     // ===== SUMMARY CARDS =====
     yPos += 50;
     
@@ -404,13 +408,58 @@ function ReportsPage() {
       { header: "Online", dataKey: "online_checks" }
     ];
 
-    const tableBody = reportData.map((row) => ({
-      label: String(row.label),
-      device_name: String(row.device_name),
-      uptime: typeof row.uptime === 'number' ? `${row.uptime.toFixed(1)}%` : 'N/A',
-      total_checks: row.total_checks?.toLocaleString() || '',
-      online_checks: row.online_checks?.toLocaleString() || '',
-    }));
+    // For daily reports, group by date and add day headers
+    let tableBody: any[] = [];
+    if (reportType === "daily") {
+      // Group by date
+      const groupedByDate = reportData.reduce((acc, row) => {
+        const date = row.label;
+        if (!acc[date]) acc[date] = [];
+        acc[date].push(row);
+        return acc;
+      }, {} as Record<string, SiteDetails[]>);
+
+      // Sort dates descending
+      const sortedDates = Object.keys(groupedByDate).sort((a, b) => b.localeCompare(a));
+
+      sortedDates.forEach((date) => {
+        const dateObj = new Date(date);
+        const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
+        const formattedDate = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        
+        // Add day header row (will be styled differently)
+        tableBody.push({
+          isDayHeader: true,
+          label: `${dayName}, ${formattedDate}`,
+          device_name: '',
+          uptime: '',
+          total_checks: '',
+          online_checks: ''
+        });
+
+        // Add data rows for this day
+        groupedByDate[date].forEach((row) => {
+          tableBody.push({
+            isDayHeader: false,
+            label: '', // Empty since date is in header
+            device_name: String(row.device_name),
+            uptime: typeof row.uptime === 'number' ? `${row.uptime.toFixed(1)}%` : 'N/A',
+            total_checks: row.total_checks?.toLocaleString() || '',
+            online_checks: row.online_checks?.toLocaleString() || ''
+          });
+        });
+      });
+    } else {
+      // Monthly/Quarterly - flat table
+      tableBody = reportData.map((row) => ({
+        isDayHeader: false,
+        label: String(row.label),
+        device_name: String(row.device_name),
+        uptime: typeof row.uptime === 'number' ? `${row.uptime.toFixed(1)}%` : 'N/A',
+        total_checks: row.total_checks?.toLocaleString() || '',
+        online_checks: row.online_checks?.toLocaleString() || '',
+      }));
+    }
 
     // Helper function to draw footer
     const drawFooter = (pageNum: number, totalPages: number) => {
@@ -451,6 +500,8 @@ function ReportsPage() {
         fontStyle: 'bold',
         fontSize: 8,
         cellPadding: 3,
+        lineColor: 255, // White borders between headers
+        lineWidth: 0.5,
       },
       bodyStyles: {
         fontSize: 8,
@@ -467,6 +518,26 @@ function ReportsPage() {
       margin: { left: 14, right: 14, bottom: 25 }, // Add bottom margin for footer
       styles: {
         overflow: 'linebreak',
+      },
+      // Style day headers differently
+      didParseCell: (hookData) => {
+        // Only style body rows, not header rows
+        if (hookData.row.section !== 'body') return;
+        
+        const rowIndex = hookData.row.index;
+        const rowData = tableBody[rowIndex];
+        if (rowData?.isDayHeader) {
+          // Style day header rows
+          hookData.cell.styles.fillColor = [230, 240, 255]; // Light blue
+          hookData.cell.styles.fontStyle = 'bold';
+          hookData.cell.styles.fontSize = 9;
+          // Merge all columns for day header
+          if (hookData.column.index === 0) {
+            hookData.cell.colSpan = tableHeaders.length;
+          } else {
+            hookData.cell.text = '';
+          }
+        }
       },
       didDrawPage: (data) => {
         // Update total pages based on current page count
@@ -528,7 +599,7 @@ function ReportsPage() {
     drawFinalFooter(finalTotalPages, finalTotalPages);
     
     // Save
-    doc.save(`SiteGuardian-Report-${reportType}-${now.toISOString().split("T")[0]}.pdf`);
+    doc.save(`SysMonitor-Report-${reportType}-${now.toISOString().split("T")[0]}.pdf`);
   };
 
   return (
@@ -660,12 +731,83 @@ function ReportsPage() {
                   Data is collected every 15 minutes by the monitoring service.
                 </span>
               </p>
+            ) : reportType === "daily" ? (
+              // Daily report with one main header and day subheaders
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  {/* One main sticky header with white column separators */}
+                  <thead className="bg-muted/80 sticky top-0 z-10">
+                    <tr className="border-b border-border">
+                      <th className="text-left py-3 px-4 font-medium text-foreground border-r border-border">Device</th>
+                      <th className="text-right py-3 px-4 font-medium text-foreground border-r border-border">Uptime %</th>
+                      <th className="text-right py-3 px-4 font-medium text-foreground border-r border-border">Total Checks</th>
+                      <th className="text-right py-3 px-4 font-medium text-foreground">Online</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(() => {
+                      // Group by date
+                      const groupedByDate = reportData.reduce((acc, row) => {
+                        const date = row.label;
+                        if (!acc[date]) acc[date] = [];
+                        acc[date].push(row);
+                        return acc;
+                      }, {} as Record<string, SiteDetails[]>);
+
+                      // Sort dates descending (newest first)
+                      const sortedDates = Object.keys(groupedByDate).sort((a, b) => b.localeCompare(a));
+
+                      return sortedDates.flatMap((date) => {
+                        const dateObj = new Date(date);
+                        const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
+                        const formattedDate = dateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+                        const rows = groupedByDate[date];
+
+                        return [
+                          // Day header row
+                          <tr key={`header-${date}`} className="bg-accent/50 border-b border-border">
+                            <td colSpan={4} className="py-2 px-4 font-medium text-foreground">
+                              {dayName}, {formattedDate}
+                            </td>
+                          </tr>,
+                          // Data rows for this day
+                          ...rows.map((row, i) => (
+                            <tr
+                              key={`${date}-${i}`}
+                              className="border-b border-border/50 hover:bg-muted/50 cursor-pointer transition-colors"
+                              onClick={() => handleSiteClick(row)}
+                              title="Click to view site details"
+                            >
+                              <td className="py-3 px-4 border-r border-border">
+                                <span className="flex items-center gap-2">
+                                  <Server className="w-4 h-4 text-muted-foreground" />
+                                  {row.device_name}
+                                </span>
+                              </td>
+                              <td className="py-3 px-4 text-right border-r border-border">
+                                <Badge
+                                  variant={typeof row.uptime === 'number' && row.uptime >= 99 ? "default" : typeof row.uptime === 'number' && row.uptime >= 95 ? "secondary" : "destructive"}
+                                >
+                                  {typeof row.uptime === 'number' ? `${row.uptime.toFixed(1)}%` : 'N/A'}
+                                </Badge>
+                              </td>
+                              <td className="py-3 px-4 text-right border-r border-border">{row.total_checks?.toLocaleString()}</td>
+                              <td className="py-3 px-4 text-right">{row.online_checks?.toLocaleString()}</td>
+                            </tr>
+                          ))
+                        ];
+                      });
+                    })()}
+                  </tbody>
+                </table>
+              </div>
             ) : (
+              // Monthly/Quarterly report - flat table
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-border">
-                      <th className="text-left py-3 px-4 font-medium">{reportType === "daily" ? "Date" : "Period"}</th>
+                      <th className="text-left py-3 px-4 font-medium">Period</th>
                       <th className="text-left py-3 px-4 font-medium">Device</th>
                       <th className="text-right py-3 px-4 font-medium">Uptime %</th>
                       <th className="text-right py-3 px-4 font-medium">Total Checks</th>
