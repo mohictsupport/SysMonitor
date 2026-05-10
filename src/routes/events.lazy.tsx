@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createLazyFileRoute } from "@tanstack/react-router";
 import { TopNav } from "@/components/TopNav";
 import { EventLog } from "@/components/EventLog";
 import { useNetbirdSites } from "@/lib/use-netbird";
@@ -6,7 +6,7 @@ import { useRealEvents } from "@/lib/use-sites";
 import { useHasApiKey } from "@/lib/auth-utils";
 import { ApiKeyGate } from "@/components/ApiKeyGate";
 
-export const Route = createFileRoute("/events")({
+export const Route = createLazyFileRoute("/events")({
   head: () => ({
     meta: [
       { title: "Events — SysMonitor" },

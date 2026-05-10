@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createLazyFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { TopNav } from "@/components/TopNav";
 import { OSIcon } from "@/components/OSIcon";
@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { formatTimeAgo } from "@/lib/utils";
 
-export const Route = createFileRoute("/devices")({
+export const Route = createLazyFileRoute("/devices")({
   component: DevicesPage,
 });
 

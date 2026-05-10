@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useLocation, useNavigate } from "@tanstack/react-router";
+import { createLazyFileRoute, Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState, useEffect, useCallback, useRef, memo } from "react";
 
 // Helper to check if OS is a device (Android, iOS, Windows, macOS, Linux - user devices)
@@ -106,7 +106,7 @@ const sitesSearchSchema = z.object({
   add: z.string().optional(),
 });
 
-export const Route = createFileRoute("/sites")({
+export const Route = createLazyFileRoute("/sites")({
   head: () => ({
     meta: [
       { title: "Sites — SysMonitor" },

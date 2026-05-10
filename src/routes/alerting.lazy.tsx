@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createLazyFileRoute } from "@tanstack/react-router";
 import { TopNav } from "@/components/TopNav";
 import { useState } from "react";
 import type { AlertingRule, AlertCondition } from "@/lib/sites-data";
@@ -6,7 +6,7 @@ import { useAlertingRules } from "@/lib/use-sites";
 import { useHasApiKey } from "@/lib/auth-utils";
 import { ApiKeyGate } from "@/components/ApiKeyGate";
 
-export const Route = createFileRoute("/alerting")({
+export const Route = createLazyFileRoute("/alerting")({
   head: () => ({
     meta: [
       { title: "Alerting — SysMonitor" },

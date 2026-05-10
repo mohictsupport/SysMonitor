@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createLazyFileRoute, Link } from "@tanstack/react-router";
 import { TopNav } from "@/components/TopNav";
 import { useNetbirdSites } from "@/lib/use-netbird";
 import { useMemo, useState } from "react";
@@ -6,7 +6,7 @@ import { WifiOff, Server, MapPin, Monitor, Link2, Wifi, Search, X, ArrowUpDown, 
 import { useHasApiKey } from "@/lib/auth-utils";
 import { ApiKeyGate } from "@/components/ApiKeyGate";
 
-export const Route = createFileRoute("/tunnels")({
+export const Route = createLazyFileRoute("/tunnels")({
   head: () => ({
     meta: [
       { title: "Tunnels — SysMonitor" },

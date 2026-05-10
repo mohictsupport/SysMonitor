@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createLazyFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { TopNav } from "@/components/TopNav";
 import { useNetbirdSites } from "@/lib/use-netbird";
@@ -10,7 +10,7 @@ import {
   type StatusEvent,
 } from "@/lib/peer-status-history";
 
-export const Route = createFileRoute("/timeline")({
+export const Route = createLazyFileRoute("/timeline")({
   head: () => ({
     meta: [
       { title: "Timeline — SysMonitor" },

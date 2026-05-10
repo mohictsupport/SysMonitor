@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createLazyFileRoute } from "@tanstack/react-router";
 import { TopNav } from "@/components/TopNav";
 import { useState, useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -33,7 +33,7 @@ function getCurrentUser(): Promise<User | null> {
   });
 }
 
-export const Route = createFileRoute("/settings")({
+export const Route = createLazyFileRoute("/settings")({
   beforeLoad: async () => {
     const user = await getCurrentUser();
     if (!user) {

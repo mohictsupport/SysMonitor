@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createLazyFileRoute } from "@tanstack/react-router";
 import { TopNav } from "@/components/TopNav";
 import { useState, useMemo } from "react";
 import { useNetbirdSites } from "@/lib/use-netbird";
@@ -54,7 +54,7 @@ import {
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 
-export const Route = createFileRoute("/reports")({
+export const Route = createLazyFileRoute("/reports")({
   head: () => ({
     meta: [
       { title: "Reports — Site Guardian Pro" },

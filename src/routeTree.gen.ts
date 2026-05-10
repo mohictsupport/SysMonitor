@@ -8,63 +8,66 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
+import { createFileRoute } from '@tanstack/react-router'
+
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as TunnelsRouteImport } from './routes/tunnels'
-import { Route as TimelineRouteImport } from './routes/timeline'
-import { Route as SitesRouteImport } from './routes/sites'
-import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as EventsRouteImport } from './routes/events'
-import { Route as DevicesRouteImport } from './routes/devices'
-import { Route as AlertingRouteImport } from './routes/alerting'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SitesNewRouteImport } from './routes/sites.new'
 import { Route as SitesSiteIdRouteImport } from './routes/sites.$siteId'
 
-const TunnelsRoute = TunnelsRouteImport.update({
+const TunnelsLazyRouteImport = createFileRoute('/tunnels')()
+const TimelineLazyRouteImport = createFileRoute('/timeline')()
+const SitesLazyRouteImport = createFileRoute('/sites')()
+const SettingsLazyRouteImport = createFileRoute('/settings')()
+const ReportsLazyRouteImport = createFileRoute('/reports')()
+const EventsLazyRouteImport = createFileRoute('/events')()
+const DevicesLazyRouteImport = createFileRoute('/devices')()
+const AlertingLazyRouteImport = createFileRoute('/alerting')()
+
+const TunnelsLazyRoute = TunnelsLazyRouteImport.update({
   id: '/tunnels',
   path: '/tunnels',
   getParentRoute: () => rootRouteImport,
-} as any)
-const TimelineRoute = TimelineRouteImport.update({
+} as any).lazy(() => import('./routes/tunnels.lazy').then((d) => d.Route))
+const TimelineLazyRoute = TimelineLazyRouteImport.update({
   id: '/timeline',
   path: '/timeline',
   getParentRoute: () => rootRouteImport,
-} as any)
-const SitesRoute = SitesRouteImport.update({
+} as any).lazy(() => import('./routes/timeline.lazy').then((d) => d.Route))
+const SitesLazyRoute = SitesLazyRouteImport.update({
   id: '/sites',
   path: '/sites',
   getParentRoute: () => rootRouteImport,
-} as any)
-const SettingsRoute = SettingsRouteImport.update({
+} as any).lazy(() => import('./routes/sites.lazy').then((d) => d.Route))
+const SettingsLazyRoute = SettingsLazyRouteImport.update({
   id: '/settings',
   path: '/settings',
   getParentRoute: () => rootRouteImport,
-} as any)
-const ReportsRoute = ReportsRouteImport.update({
+} as any).lazy(() => import('./routes/settings.lazy').then((d) => d.Route))
+const ReportsLazyRoute = ReportsLazyRouteImport.update({
   id: '/reports',
   path: '/reports',
   getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EventsRoute = EventsRouteImport.update({
+} as any).lazy(() => import('./routes/reports.lazy').then((d) => d.Route))
+const EventsLazyRoute = EventsLazyRouteImport.update({
   id: '/events',
   path: '/events',
   getParentRoute: () => rootRouteImport,
-} as any)
-const DevicesRoute = DevicesRouteImport.update({
+} as any).lazy(() => import('./routes/events.lazy').then((d) => d.Route))
+const DevicesLazyRoute = DevicesLazyRouteImport.update({
   id: '/devices',
   path: '/devices',
   getParentRoute: () => rootRouteImport,
-} as any)
-const AlertingRoute = AlertingRouteImport.update({
+} as any).lazy(() => import('./routes/devices.lazy').then((d) => d.Route))
+const AlertingLazyRoute = AlertingLazyRouteImport.update({
   id: '/alerting',
   path: '/alerting',
+  getParentRoute: () => rootRouteImport,
+} as any).lazy(() => import('./routes/alerting.lazy').then((d) => d.Route))
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -75,54 +78,54 @@ const IndexRoute = IndexRouteImport.update({
 const SitesNewRoute = SitesNewRouteImport.update({
   id: '/new',
   path: '/new',
-  getParentRoute: () => SitesRoute,
+  getParentRoute: () => SitesLazyRoute,
 } as any)
 const SitesSiteIdRoute = SitesSiteIdRouteImport.update({
   id: '/$siteId',
   path: '/$siteId',
-  getParentRoute: () => SitesRoute,
+  getParentRoute: () => SitesLazyRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/alerting': typeof AlertingRoute
-  '/devices': typeof DevicesRoute
-  '/events': typeof EventsRoute
   '/login': typeof LoginRoute
-  '/reports': typeof ReportsRoute
-  '/settings': typeof SettingsRoute
-  '/sites': typeof SitesRouteWithChildren
-  '/timeline': typeof TimelineRoute
-  '/tunnels': typeof TunnelsRoute
+  '/alerting': typeof AlertingLazyRoute
+  '/devices': typeof DevicesLazyRoute
+  '/events': typeof EventsLazyRoute
+  '/reports': typeof ReportsLazyRoute
+  '/settings': typeof SettingsLazyRoute
+  '/sites': typeof SitesLazyRouteWithChildren
+  '/timeline': typeof TimelineLazyRoute
+  '/tunnels': typeof TunnelsLazyRoute
   '/sites/$siteId': typeof SitesSiteIdRoute
   '/sites/new': typeof SitesNewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/alerting': typeof AlertingRoute
-  '/devices': typeof DevicesRoute
-  '/events': typeof EventsRoute
   '/login': typeof LoginRoute
-  '/reports': typeof ReportsRoute
-  '/settings': typeof SettingsRoute
-  '/sites': typeof SitesRouteWithChildren
-  '/timeline': typeof TimelineRoute
-  '/tunnels': typeof TunnelsRoute
+  '/alerting': typeof AlertingLazyRoute
+  '/devices': typeof DevicesLazyRoute
+  '/events': typeof EventsLazyRoute
+  '/reports': typeof ReportsLazyRoute
+  '/settings': typeof SettingsLazyRoute
+  '/sites': typeof SitesLazyRouteWithChildren
+  '/timeline': typeof TimelineLazyRoute
+  '/tunnels': typeof TunnelsLazyRoute
   '/sites/$siteId': typeof SitesSiteIdRoute
   '/sites/new': typeof SitesNewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/alerting': typeof AlertingRoute
-  '/devices': typeof DevicesRoute
-  '/events': typeof EventsRoute
   '/login': typeof LoginRoute
-  '/reports': typeof ReportsRoute
-  '/settings': typeof SettingsRoute
-  '/sites': typeof SitesRouteWithChildren
-  '/timeline': typeof TimelineRoute
-  '/tunnels': typeof TunnelsRoute
+  '/alerting': typeof AlertingLazyRoute
+  '/devices': typeof DevicesLazyRoute
+  '/events': typeof EventsLazyRoute
+  '/reports': typeof ReportsLazyRoute
+  '/settings': typeof SettingsLazyRoute
+  '/sites': typeof SitesLazyRouteWithChildren
+  '/timeline': typeof TimelineLazyRoute
+  '/tunnels': typeof TunnelsLazyRoute
   '/sites/$siteId': typeof SitesSiteIdRoute
   '/sites/new': typeof SitesNewRoute
 }
@@ -130,10 +133,10 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/login'
     | '/alerting'
     | '/devices'
     | '/events'
-    | '/login'
     | '/reports'
     | '/settings'
     | '/sites'
@@ -144,10 +147,10 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/login'
     | '/alerting'
     | '/devices'
     | '/events'
-    | '/login'
     | '/reports'
     | '/settings'
     | '/sites'
@@ -158,10 +161,10 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/login'
     | '/alerting'
     | '/devices'
     | '/events'
-    | '/login'
     | '/reports'
     | '/settings'
     | '/sites'
@@ -173,15 +176,15 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AlertingRoute: typeof AlertingRoute
-  DevicesRoute: typeof DevicesRoute
-  EventsRoute: typeof EventsRoute
   LoginRoute: typeof LoginRoute
-  ReportsRoute: typeof ReportsRoute
-  SettingsRoute: typeof SettingsRoute
-  SitesRoute: typeof SitesRouteWithChildren
-  TimelineRoute: typeof TimelineRoute
-  TunnelsRoute: typeof TunnelsRoute
+  AlertingLazyRoute: typeof AlertingLazyRoute
+  DevicesLazyRoute: typeof DevicesLazyRoute
+  EventsLazyRoute: typeof EventsLazyRoute
+  ReportsLazyRoute: typeof ReportsLazyRoute
+  SettingsLazyRoute: typeof SettingsLazyRoute
+  SitesLazyRoute: typeof SitesLazyRouteWithChildren
+  TimelineLazyRoute: typeof TimelineLazyRoute
+  TunnelsLazyRoute: typeof TunnelsLazyRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -190,35 +193,56 @@ declare module '@tanstack/react-router' {
       id: '/tunnels'
       path: '/tunnels'
       fullPath: '/tunnels'
-      preLoaderRoute: typeof TunnelsRouteImport
+      preLoaderRoute: typeof TunnelsLazyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/timeline': {
       id: '/timeline'
       path: '/timeline'
       fullPath: '/timeline'
-      preLoaderRoute: typeof TimelineRouteImport
+      preLoaderRoute: typeof TimelineLazyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sites': {
       id: '/sites'
       path: '/sites'
       fullPath: '/sites'
-      preLoaderRoute: typeof SitesRouteImport
+      preLoaderRoute: typeof SitesLazyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
       id: '/settings'
       path: '/settings'
       fullPath: '/settings'
-      preLoaderRoute: typeof SettingsRouteImport
+      preLoaderRoute: typeof SettingsLazyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reports': {
       id: '/reports'
       path: '/reports'
       fullPath: '/reports'
-      preLoaderRoute: typeof ReportsRouteImport
+      preLoaderRoute: typeof ReportsLazyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/events': {
+      id: '/events'
+      path: '/events'
+      fullPath: '/events'
+      preLoaderRoute: typeof EventsLazyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/devices': {
+      id: '/devices'
+      path: '/devices'
+      fullPath: '/devices'
+      preLoaderRoute: typeof DevicesLazyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/alerting': {
+      id: '/alerting'
+      path: '/alerting'
+      fullPath: '/alerting'
+      preLoaderRoute: typeof AlertingLazyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -226,27 +250,6 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/events': {
-      id: '/events'
-      path: '/events'
-      fullPath: '/events'
-      preLoaderRoute: typeof EventsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/devices': {
-      id: '/devices'
-      path: '/devices'
-      fullPath: '/devices'
-      preLoaderRoute: typeof DevicesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/alerting': {
-      id: '/alerting'
-      path: '/alerting'
-      fullPath: '/alerting'
-      preLoaderRoute: typeof AlertingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -261,41 +264,43 @@ declare module '@tanstack/react-router' {
       path: '/new'
       fullPath: '/sites/new'
       preLoaderRoute: typeof SitesNewRouteImport
-      parentRoute: typeof SitesRoute
+      parentRoute: typeof SitesLazyRoute
     }
     '/sites/$siteId': {
       id: '/sites/$siteId'
       path: '/$siteId'
       fullPath: '/sites/$siteId'
       preLoaderRoute: typeof SitesSiteIdRouteImport
-      parentRoute: typeof SitesRoute
+      parentRoute: typeof SitesLazyRoute
     }
   }
 }
 
-interface SitesRouteChildren {
+interface SitesLazyRouteChildren {
   SitesSiteIdRoute: typeof SitesSiteIdRoute
   SitesNewRoute: typeof SitesNewRoute
 }
 
-const SitesRouteChildren: SitesRouteChildren = {
+const SitesLazyRouteChildren: SitesLazyRouteChildren = {
   SitesSiteIdRoute: SitesSiteIdRoute,
   SitesNewRoute: SitesNewRoute,
 }
 
-const SitesRouteWithChildren = SitesRoute._addFileChildren(SitesRouteChildren)
+const SitesLazyRouteWithChildren = SitesLazyRoute._addFileChildren(
+  SitesLazyRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AlertingRoute: AlertingRoute,
-  DevicesRoute: DevicesRoute,
-  EventsRoute: EventsRoute,
   LoginRoute: LoginRoute,
-  ReportsRoute: ReportsRoute,
-  SettingsRoute: SettingsRoute,
-  SitesRoute: SitesRouteWithChildren,
-  TimelineRoute: TimelineRoute,
-  TunnelsRoute: TunnelsRoute,
+  AlertingLazyRoute: AlertingLazyRoute,
+  DevicesLazyRoute: DevicesLazyRoute,
+  EventsLazyRoute: EventsLazyRoute,
+  ReportsLazyRoute: ReportsLazyRoute,
+  SettingsLazyRoute: SettingsLazyRoute,
+  SitesLazyRoute: SitesLazyRouteWithChildren,
+  TimelineLazyRoute: TimelineLazyRoute,
+  TunnelsLazyRoute: TunnelsLazyRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

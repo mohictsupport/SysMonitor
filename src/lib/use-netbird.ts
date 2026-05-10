@@ -238,8 +238,8 @@ export function useNetbirdPeers() {
         throw error;
       }
     },
-    refetchInterval: 60_000, // Auto sync every 60 seconds (1 minute)
-    staleTime: 55_000, // 55 seconds - slightly less than refetch interval to ensure fresh data
+    refetchInterval: 300_000, // Auto sync every 5 minutes (300 seconds)
+    staleTime: 295_000, // 4 minutes 55 seconds - slightly less than refetch interval
     // Show cached data immediately while fetching in background
     placeholderData: (previousData, previousQuery) => {
       // If previous query had an error, increment failure count

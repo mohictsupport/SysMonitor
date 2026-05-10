@@ -6,7 +6,7 @@ import { useNetbirdSites } from "@/lib/use-netbird";
 import { useAllSitesUptime } from "@/lib/use-site-uptime";
 import { useHasApiKey } from "@/lib/auth-utils";
 import { ApiKeyGate } from "@/components/ApiKeyGate";
-import { SiteDetailModal } from "./sites";
+import { SiteDetailModal } from "./sites.lazy";
 import { useMemo, useState, useEffect } from "react";
 import type { SiteStatus, Site } from "@/lib/sites-data";
 import { Plus, Server, ChevronDown, ChevronUp } from "lucide-react";

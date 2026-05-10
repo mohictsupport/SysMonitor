@@ -326,7 +326,7 @@ export function generateInstallCommands(
 let syncInterval: NodeJS.Timeout | null = null;
 
 export function startAutoSync(
-  intervalMs: number = 60000, // Default: 1 minute
+  intervalMs: number = 300_000, // Default: 5 minutes
   onNewSite?: (site: ProvisionedSite) => void,
 ) {
   stopAutoSync();
