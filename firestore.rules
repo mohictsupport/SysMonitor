@@ -22,16 +22,19 @@ service cloud.firestore {
       return isSignedIn() && request.resource.data.userId == request.auth.uid;
     }
     
-    // Users collection - each user can only read/write their own data
+    // Users collection - allow authenticated users to read/write their own document and subcollections
     match /users/{userId} {
+      // User document itself
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
+      
       // User preferences subcollection
       match /preferences/{document=**} {
-        allow read, write: if isOwner(userId);
+        allow read, write: if isSignedIn() && request.auth.uid == userId;
       }
       
-      // Any other user-specific data
+      // Any other user-specific data in subcollections
       match /{document=**} {
-        allow read, write: if isOwner(userId);
+        allow read, write: if isSignedIn() && request.auth.uid == userId;
       }
     }
     

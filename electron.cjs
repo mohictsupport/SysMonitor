@@ -136,6 +136,9 @@ function createWindow() {
     show: false, // Don't show until ready
   });
 
+  // Maximize window on startup
+  mainWindow.maximize();
+
   // Prevent background throttling - ensure timers and network keep running
   mainWindow.webContents.on('dom-ready', () => {
     mainWindow.webContents.executeJavaScript(`
