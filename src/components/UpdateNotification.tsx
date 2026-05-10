@@ -19,6 +19,29 @@ export function UpdateNotification() {
   const [isInstalling, setIsInstalling] = useState(false);
   const notifiedVersionRef = useRef<string | null>(null);
 
+  // Track if we've already shown notification for this version
+  const hasNotifiedForVersion = (version: string): boolean => {
+    try {
+      const notifiedVersions = JSON.parse(localStorage.getItem('updateNotifiedVersions') || '[]');
+      return notifiedVersions.includes(version);
+    } catch {
+      return false;
+    }
+  };
+
+  // Mark version as notified
+  const markVersionNotified = (version: string): void => {
+    try {
+      const notifiedVersions = JSON.parse(localStorage.getItem('updateNotifiedVersions') || '[]');
+      if (!notifiedVersions.includes(version)) {
+        notifiedVersions.push(version);
+        localStorage.setItem('updateNotifiedVersions', JSON.stringify(notifiedVersions));
+      }
+    } catch {
+      // Ignore storage errors
+    }
+  };
+
   useEffect(() => {
     if (!isElectron()) return;
 
@@ -35,9 +58,10 @@ export function UpdateNotification() {
       setStatus(newStatus);
       
       // Show notification when update is available or downloaded
-      // Only show once per version to prevent spam
+      // Only show once per version to prevent spam - use localStorage to persist
       if ((newStatus.available || newStatus.downloaded) && newStatus.version) {
-        if (notifiedVersionRef.current !== newStatus.version) {
+        if (!hasNotifiedForVersion(newStatus.version)) {
+          markVersionNotified(newStatus.version);
           notifiedVersionRef.current = newStatus.version;
           setIsVisible(true);
           setDismissed(false);

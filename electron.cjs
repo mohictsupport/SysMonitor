@@ -247,29 +247,67 @@ function setupAutoUpdater() {
   });
 
   // Update available
+  // Track if we've already started downloading to prevent duplicates
+  let downloadStarted = false;
+
   autoUpdater.on('update-available', (info) => {
     console.log('[AutoUpdater] Update available:', info.version);
-    
-    // Check if we have a partial download to resume
-    const hasPartialDownload = downloadState.version === info.version && downloadState.downloadedBytes > 0;
-    
+
+    // Check if we're already downloading this version
+    if (downloadState.isDownloading && downloadState.version === info.version) {
+      console.log('[AutoUpdater] Already downloading this version');
+      return;
+    }
+
+    // Check if we've already fully downloaded this version
+    if (downloadState.version === info.version && downloadState.downloadedBytes === downloadState.totalBytes && downloadState.totalBytes > 0) {
+      console.log('[AutoUpdater] This version already fully downloaded');
+      return;
+    }
+
+    // Check if we can resume a previous download
+    const canResume = downloadState.version === info.version && 
+                     downloadState.downloadedBytes > 0 &&
+                     downloadState.downloadedBytes < downloadState.totalBytes &&
+                     !downloadState.lastError;
+
     updateStatus = {
       checking: false,
       available: true,
       downloaded: false,
       error: null,
       version: info.version,
-      percent: hasPartialDownload ? Math.round((downloadState.downloadedBytes / downloadState.totalBytes) * 100) : 0,
-      canResume: hasPartialDownload,
+      percent: canResume ? Math.round((downloadState.downloadedBytes / downloadState.totalBytes) * 100) : 0,
+      canResume: canResume,
     };
     sendUpdateStatus();
-    
-    // Auto-start download if no partial download exists, or resume if available
-    if (hasPartialDownload) {
-      console.log('[AutoUpdater] Resuming download from', downloadState.downloadedBytes, 'bytes');
+
+    // Prevent duplicate download attempts
+    if (downloadStarted) {
+      console.log('[AutoUpdater] Download already started, skipping');
+      return;
     }
-    
-    // Start download (electron-updater handles resume internally via HTTP range requests)
+
+    // Reset download state for new version
+    if (downloadState.version !== info.version) {
+      downloadState = {
+        version: info.version,
+        downloadedBytes: 0,
+        totalBytes: 0,
+        isDownloading: true,
+        lastError: null,
+        downloadUrl: null,
+        partialFile: null,
+      };
+      saveDownloadState();
+    } else {
+      downloadState.isDownloading = true;
+      saveDownloadState();
+    }
+
+    // Start download
+    downloadStarted = true;
+    console.log('[AutoUpdater] Starting download...');
     autoUpdater.downloadUpdate().catch((err) => {
       console.error('[AutoUpdater] Download failed:', err);
     });
