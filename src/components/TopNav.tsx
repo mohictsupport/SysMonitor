@@ -25,7 +25,7 @@ const NAV = [
 
 export function TopNav({ onAddSite }: TopNavProps = {}) {
   const { pathname } = useLocation();
-  const { sites, error, isLoading } = useNetbirdSites();
+  const { sites, error, isLoading, isFetching } = useNetbirdSites();
   const [pendingCount, setPendingCount] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -109,7 +109,7 @@ export function TopNav({ onAddSite }: TopNavProps = {}) {
         <div className="flex items-center gap-3 md:gap-4">
           <UpdateBadge />
           <OnboardingIndicator pendingCount={pendingCount} />
-          <AlertIndicator sites={sites} isNetworkOnline={isOnline} apiError={error} isLoading={isLoading} />
+          <AlertIndicator sites={sites} isNetworkOnline={isOnline} apiError={error} isLoading={isLoading} isFetching={isFetching} />
           <AddSiteButton onSiteAdded={handleSiteAdded} onClick={onAddSite} />
           {/* Hamburger button - mobile only */}
           <button

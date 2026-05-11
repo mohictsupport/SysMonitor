@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { WifiOff, Server, MapPin, Monitor, Link2, Wifi, Search, X, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { useHasApiKey } from "@/lib/auth-utils";
 import { ApiKeyGate } from "@/components/ApiKeyGate";
+import { Button } from "@/components/ui/button";
 
 export const Route = createLazyFileRoute("/tunnels")({
   head: () => ({
@@ -103,7 +104,7 @@ function TunnelsErrorComponent({ error }: { error: Error }) {
 
 function TunnelsPage() {
   const hasApiKey = useHasApiKey();
-  const { sites, loading, error } = useNetbirdSites();
+  const { sites, loading, error, refetch, isFetching } = useNetbirdSites();
 
   const connected = sites.filter((s) => s.netbirdConnected).length;
   const [query, setQuery] = useState("");
@@ -185,10 +186,23 @@ function TunnelsPage() {
     <div className="min-h-dvh bg-background text-foreground">
       <TopNav />
       <main className="mx-auto max-w-[1400px] p-6">
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-dim">
-          Mesh Control · Netbird
-        </p>
-        <h1 className="mt-1 text-2xl font-medium tracking-tight">Encrypted Tunnels</h1>
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-dim">
+              Mesh Control · Netbird
+            </p>
+            <h1 className="mt-1 text-2xl font-medium tracking-tight">Encrypted Tunnels</h1>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => refetch()}
+            disabled={isFetching}
+            className="font-mono text-[11px] inline-flex items-center gap-2"
+          >
+            {isFetching ? "⟳ Syncing..." : "↻ Sync Now"}
+          </Button>
+        </div>
         <p className="mt-2 max-w-2xl text-sm text-dim">
           Each site is reachable via a Netbird-managed WireGuard tunnel. Probes (HTTP, ICMP, TCP)
           run inside the tunnel so private hosts stay private.

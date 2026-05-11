@@ -16,9 +16,10 @@ interface AlertIndicatorProps {
   isNetworkOnline?: boolean;
   apiError?: Error | null;
   isLoading?: boolean;
+  isFetching?: boolean;
 }
 
-export function AlertIndicator({ sites, isNetworkOnline = true, apiError, isLoading }: AlertIndicatorProps) {
+export function AlertIndicator({ sites, isNetworkOnline = true, apiError, isLoading, isFetching }: AlertIndicatorProps) {
   const [activeAlerts, setActiveAlerts] = useState<{ count: number; critical: boolean }>({
     count: 0,
     critical: false,
@@ -99,7 +100,12 @@ export function AlertIndicator({ sites, isNetworkOnline = true, apiError, isLoad
   if (activeAlerts.count === 0) {
     return (
       <div className={`hidden items-center gap-2 rounded-full border ${status.color.border} ${status.color.bgLight} px-3 py-1 sm:flex`}>
-        <span className={`status-pulse size-1.5 rounded-full ${status.color.bg}`} />
+        <div className="relative">
+          <span className={`status-pulse size-1.5 rounded-full ${status.color.bg}`} />
+          {isFetching && (
+            <span className="absolute inset-0 -m-1 animate-spin rounded-full border border-transparent border-t-phosphor border-r-phosphor" />
+          )}
+        </div>
         <span className={`font-mono text-[10px] uppercase tracking-widest ${status.color.text}`}>
           {status.text}
         </span>

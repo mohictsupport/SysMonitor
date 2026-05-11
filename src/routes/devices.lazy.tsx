@@ -5,6 +5,8 @@ import { OSIcon } from "@/components/OSIcon";
 import { useNetbirdSites } from "@/lib/use-netbird";
 import { ApiKeyGate } from "@/components/ApiKeyGate";
 import { useHasApiKey } from "@/lib/auth-utils";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import {
   Monitor,
   Smartphone,
@@ -61,11 +63,15 @@ type SortField = "name" | "region" | "os" | "status" | "lastSeen";
 type SortDirection = "asc" | "desc";
 
 function DevicesPage() {
-  const { sites, isLoading } = useNetbirdSites();
+  const { sites, isLoading, refetch, isFetching } = useNetbirdSites();
   const hasApiKey = useHasApiKey();
   const [searchTerm, setSearchTerm] = useState("");
   const [sortField, setSortField] = useState<SortField>("lastSeen");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+
+  // Selected device for detail modal
+  const [selectedDevice, setSelectedDevice] = useState<NetBirdSite | null>(null);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
 
   // Filter to only devices (not infrastructure)
   const devices = useMemo(() => {
@@ -158,6 +164,15 @@ function DevicesPage() {
             </p>
             <h1 className="mt-1 text-2xl font-medium tracking-tight">User Devices</h1>
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => refetch()}
+            disabled={isFetching}
+            className="font-mono text-[11px] inline-flex items-center gap-2"
+          >
+            {isFetching ? "⟳ Syncing..." : "↻ Sync Now"}
+          </Button>
         </div>
 
         {/* Stats Cards */}
@@ -249,7 +264,11 @@ function DevicesPage() {
               return (
                 <div
                   key={device.id}
-                  className="grid grid-cols-1 items-center gap-4 px-4 py-4 transition-colors hover:bg-panel-2 md:grid-cols-12 border-b border-border/50"
+                  onClick={() => {
+                    setSelectedDevice(device);
+                    setDetailModalOpen(true);
+                  }}
+                  className="grid grid-cols-1 items-center gap-4 px-4 py-4 transition-colors hover:bg-panel-2 md:grid-cols-12 border-b border-border/50 cursor-pointer"
                 >
                   <div className="col-span-3 flex items-center gap-3">
                     <div className="bg-muted p-2 rounded-md">
@@ -297,7 +316,173 @@ function DevicesPage() {
           </div>
         </div>
       </main>
+
+      {/* Device Detail Modal */}
+      <DeviceDetailModal
+        device={selectedDevice}
+        open={detailModalOpen}
+        onClose={() => {
+          setDetailModalOpen(false);
+          setSelectedDevice(null);
+        }}
+        allSites={sites}
+      />
     </div>
+  );
+}
+
+// Device Detail Modal
+export function DeviceDetailModal({
+  device,
+  open,
+  onClose,
+  allSites = [],
+}: {
+  device: NetBirdSite | null;
+  open: boolean;
+  onClose: () => void;
+  allSites?: NetBirdSite[];
+}) {
+  // Find all peer info for this device - prioritize fresh data from allSites
+  const peer = useMemo(() => {
+    if (!device) return null;
+    // Try to find matching peer in allSites (fresh data from NetBird API)
+    const match = allSites.find((s) => 
+      (device.peerId && s.peerId === device.peerId) || 
+      (device.name && s.name === device.name) ||
+      (device.id && s.id === device.id)
+    );
+    // Return match if found (fresh data), otherwise fall back to device prop
+    return match || device;
+  }, [device, allSites]);
+
+  // Safe values that work even when device is null
+  // Note: use netbirdConnected from API/site data, fall back to connected for compatibility
+  const deviceOS = peer?.os || device?.os || "Unknown";
+  const lastSeen = peer?.lastSeen || device?.lastSeen || "Never";
+  const connected = peer?.netbirdConnected ?? peer?.connected ?? device?.netbirdConnected ?? device?.connected ?? false;
+  const version = peer?.version || device?.version || "-";
+  const groups = peer?.groups || device?.groups || [];
+  const deviceName = device?.name || "Unknown Device";
+
+  // Format last seen
+  const formattedLastSeen = useMemo(() => {
+    if (!lastSeen || lastSeen === "Never") return "Never";
+    try {
+      const date = new Date(lastSeen);
+      if (isNaN(date.getTime())) return "Unknown";
+      return date.toLocaleString("en-US", {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return "Unknown";
+    }
+  }, [lastSeen]);
+
+
+  // Early return AFTER all hooks are called
+  if (!device) return null;
+
+  // Debug logging to trace data mismatch
+  console.log('[DeviceDetailModal] Device:', device?.name, 'connected:', device?.connected, 'netbirdConnected:', device?.netbirdConnected);
+  console.log('[DeviceDetailModal] Peer:', peer?.name, 'connected:', peer?.connected, 'netbirdConnected:', peer?.netbirdConnected);
+  console.log('[DeviceDetailModal] Final connected:', connected);
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-4xl bg-panel border-border p-0 overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-border bg-background">
+          <div>
+            <DialogTitle className="text-xl font-semibold flex items-center gap-2">
+              <Monitor className="w-5 h-5 text-phosphor" />
+              {device.name}
+            </DialogTitle>
+            <p className="text-sm text-dim mt-1">
+              Device • {deviceOS} • {connected ? "Connected" : "Disconnected"}
+            </p>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Left: Device Info */}
+              <div className="lg:col-span-2 space-y-6">
+                {/* Status Cards */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <Tile
+                    label="Status"
+                    value={connected ? "Online" : "Offline"}
+                    color={connected ? "phosphor" : "alert"}
+                  />
+                  <Tile label="OS" value={deviceOS} />
+                  <Tile label="Version" value={version} />
+                </div>
+
+                {/* Connected Since / Last Seen */}
+                <div className="bg-panel p-4 rounded-lg border border-border">
+                  <h4 className="text-sm font-medium text-dim uppercase tracking-wide mb-3">
+                    {connected ? "Connected Since" : "Last Seen"}
+                  </h4>
+                  <div className="flex items-center gap-3">
+                    <div className={`w-3 h-3 rounded-full ${connected ? "bg-phosphor" : "bg-alert"}`} />
+                    <span className="text-lg font-mono">{formattedLastSeen}</span>
+                    {connected && <span className="text-sm text-phosphor">(Online)</span>}
+                  </div>
+                </div>
+
+                {/* Groups */}
+                {groups.length > 0 && (
+                  <div className="bg-panel p-4 rounded-lg border border-border">
+                    <h4 className="text-sm font-medium text-dim uppercase tracking-wide mb-3">
+                      Groups
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {groups.map((group) => (
+                        <span
+                          key={group}
+                          className="px-2 py-1 text-xs bg-background border border-border rounded"
+                        >
+                          {group}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Right: Peer Info Sidebar */}
+              <div className="space-y-4">
+                <div className="bg-panel p-4 rounded-lg border border-border">
+                  <h4 className="text-sm font-medium text-dim uppercase tracking-wide mb-3">
+                    Peer Details
+                  </h4>
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-dim">Connection</span>
+                      <span className={connected ? "text-phosphor" : "text-alert"}>
+                        {connected ? "Established" : "Not Connected"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-dim">Operating System</span>
+                      <span>{deviceOS}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-dim">NetBird Version</span>
+                      <span className="font-mono">{version}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+    </Dialog>
   );
 }
 
