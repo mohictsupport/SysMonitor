@@ -1,177 +1,702 @@
 [
-  { "name": "Western One RHD", "region": "Western One" },
-  { "name": "Leman Clinic", "region": "Western One" },
-  { "name": "Old Jeshwang Minor Health Center", "region": "Western One" },
-  { "name": "Ahmed Clinic", "region": "Western One" },
-  { "name": "Bakau Minor Health Center", "region": "Western One" },
-  { "name": "Sinchu Baliya Minor Health Center", "region": "Western One" },
-  { "name": "Mandinaring Minor Health Center", "region": "Western One" },
-  { "name": "Bundung Maternal & Child Hospital", "region": "Western One" },
-  { "name": "Serre Kunda Minor Health Center", "region": "Western One" },
-  { "name": "Banjulinding Minor Health Center", "region": "Western One" },
-  { "name": "Makumbaya Community Clinic", "region": "Western One" },
-  { "name": "New Yundum Minor Health Center", "region": "Western One" },
-  { "name": "Jabang Minor Health Center", "region": "Western One" },
-  { "name": "New Jeshwang Minor Health Center", "region": "Western One" },
-  { "name": "Busumbala Community Clinic", "region": "Western One" },
-  { "name": "Abuko Minor Health Center", "region": "Western One" },
-  { "name": "Sukuta Minor Health Center", "region": "Western One" },
-  { "name": "Faji Kunda Minor Health Center", "region": "Western One" },
-  { "name": "Poly Clinic", "region": "Western One" },
-  { "name": "Brufut Minor Health Center", "region": "Western One" },
-  { "name": "Kanifing General Hospital", "region": "Western One" },
-  { "name": "Births And Death Registry", "region": "Western One" },
-  { "name": "Western Two RHD", "region": "Western Two" },
-  { "name": "Brikama District Hospital", "region": "Western Two" },
-  { "name": "Bafuloto Community Clinic", "region": "Western Two" },
-  { "name": "Sanyang Major Health Center", "region": "Western Two" },
-  { "name": "Gunjur Minor Health Center", "region": "Western Two" },
-  { "name": "Sintet Minor Health Center", "region": "Western Two" },
-  { "name": "Tujereng Community Clinic", "region": "Western Two" },
-  { "name": "Kartong Community Clinic", "region": "Western Two" },
-  { "name": "Pirang Minor Health Center", "region": "Western Two" },
-  { "name": "Besse Community Clinic", "region": "Western Two" },
-  { "name": "Bwiam General Hospital", "region": "Western Two" },
-  { "name": "Kafuta Minor Health Center", "region": "Western Two" },
-  { "name": "Sibanor Minor Health Center", "region": "Western Two" },
-  { "name": "Tanji Community Clinic", "region": "Western Two" },
-  { "name": "Jambur Community Clinic", "region": "Western Two" },
-  { "name": "Siffoe Community Clinic", "region": "Western Two" },
-  { "name": "Sambuyan Community Clinic", "region": "Western Two" },
-  { "name": "Darsilameh Community Clinic", "region": "Western Two" },
-  { "name": "Banyaka Community Clinic", "region": "Western Two" },
-  { "name": "Jambanjelly Community Clinic", "region": "Western Two" },
-  { "name": "Bulock Community Clinic", "region": "Western Two" },
-  { "name": "Kassagne Community Clinic", "region": "Western Two" },
-  { "name": "Farato Community Clinic", "region": "Western Two" },
-  { "name": "Brikama Nyambai Clinic", "region": "Western Two" },
-  { "name": "Brikama Wellingara Clinic", "region": "Western Two" },
-  { "name": "Bondali Clinic", "region": "Western Two" },
-  { "name": "CHN School", "region": "Lower River Region" },
-  { "name": "Kwinella Minor Health Center", "region": "Lower River Region" },
-  { "name": "Kaiaf Minor Health Center", "region": "Lower River Region" },
-  { "name": "Jiffarong Minor Health Center", "region": "Lower River Region" },
-  { "name": "Jalangbereh Minor Health Center", "region": "Lower River Region" },
-  { "name": "Pakaliba Minor Health Center", "region": "Lower River Region" },
-  { "name": "Kolior Community Clinic", "region": "Lower River Region" },
-  { "name": "Lower River Region RHD", "region": "Lower River Region" },
-  { "name": "Soma District Hospital", "region": "Lower River Region" },
-  { "name": "Jali Minor Health Center", "region": "Lower River Region" },
-  { "name": "Kiang Karantaba Minor Health Center", "region": "Lower River Region" },
-  { "name": "Bureng Minor Health Center", "region": "Lower River Region" },
-  { "name": "North Bank West RHD", "region": "North Bank Region West" },
-  { "name": "Essau District Hospital", "region": "North Bank Region West" },
-  { "name": "Kerr Cherno Minor Health Center", "region": "North Bank Region West" },
-  { "name": "Ndungu Kebbeh Community Clinic", "region": "North Bank Region West" },
-  { "name": "Albreda Minor Health Center", "region": "North Bank Region West" },
-  { "name": "Kuntair Minor Health Center", "region": "North Bank Region West" },
-  { "name": "Fass Njaga Choi Community Clinic", "region": "North Bank Region West" },
-  { "name": "Madina Seringe Mass Community Clinic", "region": "North Bank Region West" },
-  { "name": "Macca Balla Manneh Community Clinic", "region": "North Bank Region West" },
-  { "name": "Chesay Ma Jaw Minor Health Center", "region": "North Bank Region West" },
-  { "name": "Nema Kunku Community Clinic", "region": "North Bank Region West" },
-  { "name": "North Bank East RHD", "region": "North Bank Region East" },
-  { "name": "Farafenni General Hospital", "region": "North Bank Region East" },
-  { "name": "Njaba Kunda Minor Health Center", "region": "North Bank Region East" },
-  { "name": "Illiassa Minor Health Center", "region": "North Bank Region East" },
-  { "name": "Kerewan Minor Health Center", "region": "North Bank Region East" },
-  { "name": "Sara Kunda Minor Health Center", "region": "North Bank Region East" },
-  { "name": "Ngen Sanjal Minor Health Center", "region": "North Bank Region East" },
-  { "name": "Daru Rilwan Community Clinic", "region": "North Bank Region East" },
-  { "name": "Njawara Community Clinic", "region": "North Bank Region East" },
-  { "name": "Salikenni Minor Health Center", "region": "North Bank Region East" },
-  { "name": "Farafenni RCH", "region": "North Bank Region East" },
-  { "name": "Kunting Community Clinic", "region": "Central River Region" },
-  { "name": "Kaur Minor Health Center", "region": "Central River Region" },
-  { "name": "Jahanka Minor Health Center", "region": "Central River Region" },
-  { "name": "Bansang RCH", "region": "Central River Region" },
-  { "name": "Bansang SEN School", "region": "Central River Region" },
-  { "name": "Central River Region RHD", "region": "Central River Region" },
-  { "name": "Niamina Dankuku Minor Health Center", "region": "Central River Region" },
-  { "name": "Kudang Minor Health Center", "region": "Central River Region" },
-  { "name": "Brikamaba Minor Health Center", "region": "Central River Region" },
-  { "name": "Janjanbureh Minor Health Center", "region": "Central River Region" },
-  { "name": "Bansang General Hospital", "region": "Central River Region" },
-  { "name": "Sami Karantaba Minor Health Center", "region": "Central River Region" },
-  { "name": "Kuntaur Major Health Center", "region": "Central River Region" },
-  { "name": "Chamen Minor Health Center", "region": "Central River Region" },
-  { "name": "Njau Minor Health Center", "region": "Central River Region" },
-  { "name": "Gambisara Minor Health Center", "region": "Upper River Region" },
-  { "name": "Sabi Minor Health Center", "region": "Upper River Region" },
-  { "name": "Diabugu Minor Health Center", "region": "Upper River Region" },
-  { "name": "Makamang Kunda (Ajj) Minor Health Center", "region": "Upper River Region" },
-  { "name": "Upper River Region RHD", "region": "Upper River Region" },
-  { "name": "Demba Kunda Kuta Minor Health Center", "region": "Upper River Region" },
-  { "name": "Gunjur Kuta Community Clinic", "region": "Upper River Region" },
-  { "name": "Foday Kunda Minor Health Center", "region": "Upper River Region" },
-  { "name": "Fatoto Minor Health Center", "region": "Upper River Region" },
-  { "name": "Baja Kunda Minor Health Center", "region": "Upper River Region" },
-  { "name": "Hon.Assan Musa Camara/Tumana Minor Health Center", "region": "Upper River Region" },
-  { "name": "Demba Kunda Koto Minor Health Center", "region": "Upper River Region" },
-  { "name": "Yerrobawol Minor Health Center", "region": "Upper River Region" },
-  { "name": "Basse District Hospital", "region": "Upper River Region" },
-  { "name": "Directorate Of Planning And Information", "region": "Central Level" },
-  { "name": "National Malaria Control Program", "region": "Central Level" },
-  { "name": "National Leprosy And Tb Control Program", "region": "Central Level" },
-  { "name": "Ministry Of Health", "region": "Central Level" },
-  { "name": "Edward Francis Small Teaching Hospital", "region": "Western One" },
-  { "name": "Basori Community Clinic", "region": "Western Two" },
-  { "name": "Kalagi Minor Health Center", "region": "Western Two" },
-  { "name": "Kampassa Community Clinic", "region": "Western Two" },
-  { "name": "Kanilai Community Clinic", "region": "Western Two" },
-  { "name": "Kappa Health Post", "region": "Western Two" },
-  { "name": "Mayork Community Clinic", "region": "Western Two" },
-  { "name": "Tampoto Community Clinic", "region": "Western Two" },
-  { "name": "Batabutu Kantora Health Post", "region": "Western Two" },
-  { "name": "Faraba Kairaba Community Clinic", "region": "Western Two" },
-  { "name": "Janack Community Clinic", "region": "Western Two" },
-  { "name": "Narang Health Post", "region": "Western Two" },
-  { "name": "Nyofelleh Community Clinic", "region": "Western Two" },
-  { "name": "Alkaly Nyakudy Drammeh Minor Health Center", "region": "Lower River Region" },
-  { "name": "Dongoroba Minor Health Center", "region": "Lower River Region" },
-  { "name": "Jappineh Community Clinic", "region": "Lower River Region" },
-  { "name": "Kuli Kunda Clinic", "region": "Lower River Region" },
-  { "name": "Nema Community Clinic", "region": "Lower River Region" },
-  { "name": "Sare Musa Community Clinic", "region": "Lower River Region" },
-  { "name": "Sibito Clinic", "region": "Lower River Region" },
-  { "name": "Sutukung Community Clinic", "region": "Lower River Region" },
-  { "name": "Toniataba Community Clinic", "region": "Lower River Region" },
-  { "name": "Bakang Community Clinic", "region": "North Bank Region West" },
-  { "name": "Buniadou Community Clinic", "region": "North Bank Region West" },
-  { "name": "Ginack Community Clinic", "region": "North Bank Region West" },
-  { "name": "Jurunku Community Clinic", "region": "North Bank Region West" },
-  { "name": "Touba Kolong Community Clinic", "region": "North Bank Region West" },
-  { "name": "Bakindick Community Clinic", "region": "North Bank Region West" },
-  { "name": "Kerr Njugary Community Clinic", "region": "North Bank Region West" },
-  { "name": "Kerr Mama Community Clinic", "region": "North Bank Region West" },
-  { "name": "Bambally Community Clinic", "region": "North Bank Region East" },
-  { "name": "Katchang Community Clinic", "region": "North Bank Region East" },
-  { "name": "Nawleru Community Clinic", "region": "North Bank Region East" },
-  { "name": "Noo Kunda Community Clinic", "region": "North Bank Region East" },
-  { "name": "Saaba Community Clinic", "region": "North Bank Region East" },
-  { "name": "Balllangharr Kerr Ndery Community Clinic", "region": "Central River Region" },
-  { "name": "Firdawsy Community Clinic", "region": "Central River Region" },
-  { "name": "Jailan Bakadagi Community Clinic", "region": "Central River Region" },
-  { "name": "Jamally Ganyado Community Clinic", "region": "Central River Region" },
-  { "name": "Jessadi Community Clinic", "region": "Central River Region" },
-  { "name": "Katamina Community Clinic", "region": "Central River Region" },
-  { "name": "Madina Umfally Community Clinic", "region": "Central River Region" },
-  { "name": "Nana Village OPD", "region": "Central River Region" },
-  { "name": "Njoben Community Clinic", "region": "Central River Region" },
-  { "name": "Pinai Community Clinic", "region": "Central River Region" },
-  { "name": "Sami Madina Community Clinic", "region": "Central River Region" },
-  { "name": "Sare Soffie Community Clinic", "region": "Central River Region" },
-  { "name": "Bakadajie Community Clinic", "region": "Upper River Region" },
-  { "name": "Kuwonku-Ba Community Clinic", "region": "Upper River Region" },
-  { "name": "Numuyel Community Clinic", "region": "Upper River Region" },
-  { "name": "Sare Gubu Community Clinic", "region": "Upper River Region" },
-  { "name": "Sotuma Sere Community Clinic", "region": "Upper River Region" },
-  { "name": "Chamoi Kunda Community Clinic", "region": "Upper River Region" },
-  { "name": "Changally Lang Kaddy Community Clinic", "region": "Upper River Region" },
-  { "name": "Darsilameh Community Clinic", "region": "Upper River Region" },
-  { "name": "Garawol Minor Health Center", "region": "Upper River Region" },
-  { "name": "Koina Minor Health Center", "region": "Upper River Region" },
-  { "name": "Perai Community Clinic", "region": "Upper River Region" },
-  { "name": "Sutukoba Community Clinic", "region": "Upper River Region" },
-  { "name": "Tumana Minor Health Center", "region": "Upper River Region" }
+  {
+    "name": "Western One RHD",
+    "region": "Western One"
+  },
+  {
+    "name": "Leman Clinic",
+    "region": "Western One"
+  },
+  {
+    "name": "Old Jeshwang Minor Health Center",
+    "region": "Western One"
+  },
+  {
+    "name": "Ahmed Clinic",
+    "region": "Western One"
+  },
+  {
+    "name": "Bakau Minor Health Center",
+    "region": "Western One"
+  },
+  {
+    "name": "Sinchu Baliya Minor Health Center",
+    "region": "Western One"
+  },
+  {
+    "name": "Mandinaring Minor Health Center",
+    "region": "Western One"
+  },
+  {
+    "name": "Bundung Maternal & Child Hospital",
+    "region": "Western One"
+  },
+  {
+    "name": "Serre Kunda Minor Health Center",
+    "region": "Western One"
+  },
+  {
+    "name": "Banjulinding Minor Health Center",
+    "region": "Western One"
+  },
+  {
+    "name": "Makumbaya Community Clinic",
+    "region": "Western One"
+  },
+  {
+    "name": "New Yundum Minor Health Center",
+    "region": "Western One"
+  },
+  {
+    "name": "Jabang Minor Health Center",
+    "region": "Western One"
+  },
+  {
+    "name": "New Jeshwang Minor Health Center",
+    "region": "Western One"
+  },
+  {
+    "name": "Busumbala Community Clinic",
+    "region": "Western One"
+  },
+  {
+    "name": "Abuko Minor Health Center",
+    "region": "Western One"
+  },
+  {
+    "name": "Sukuta Minor Health Center",
+    "region": "Western One"
+  },
+  {
+    "name": "Faji Kunda Minor Health Center",
+    "region": "Western One"
+  },
+  {
+    "name": "Poly Clinic",
+    "region": "Western One"
+  },
+  {
+    "name": "Brufut Minor Health Center",
+    "region": "Western One"
+  },
+  {
+    "name": "Kanifing General Hospital",
+    "region": "Western One"
+  },
+  {
+    "name": "Births And Death Registry",
+    "region": "Western One"
+  },
+  {
+    "name": "Western Two RHD",
+    "region": "Western Two"
+  },
+  {
+    "name": "Brikama District Hospital",
+    "region": "Western Two"
+  },
+  {
+    "name": "Bafuloto Community Clinic",
+    "region": "Western Two"
+  },
+  {
+    "name": "Sanyang Major Health Center",
+    "region": "Western Two"
+  },
+  {
+    "name": "Gunjur Minor Health Center",
+    "region": "Western Two"
+  },
+  {
+    "name": "Sintet Minor Health Center",
+    "region": "Western Two"
+  },
+  {
+    "name": "Tujereng Community Clinic",
+    "region": "Western Two"
+  },
+  {
+    "name": "Kartong Community Clinic",
+    "region": "Western Two"
+  },
+  {
+    "name": "Pirang Minor Health Center",
+    "region": "Western Two"
+  },
+  {
+    "name": "Besse Community Clinic",
+    "region": "Western Two"
+  },
+  {
+    "name": "Bwiam General Hospital",
+    "region": "Western Two"
+  },
+  {
+    "name": "Kafuta Minor Health Center",
+    "region": "Western Two"
+  },
+  {
+    "name": "Sibanor Minor Health Center",
+    "region": "Western Two"
+  },
+  {
+    "name": "Tanji Community Clinic",
+    "region": "Western Two"
+  },
+  {
+    "name": "Jambur Community Clinic",
+    "region": "Western Two"
+  },
+  {
+    "name": "Siffoe Community Clinic",
+    "region": "Western Two"
+  },
+  {
+    "name": "Sambuyan Community Clinic",
+    "region": "Western Two"
+  },
+  {
+    "name": "Darsilameh Community Clinic",
+    "region": "Western Two"
+  },
+  {
+    "name": "Banyaka Community Clinic",
+    "region": "Western Two"
+  },
+  {
+    "name": "Jambanjelly Community Clinic",
+    "region": "Western Two"
+  },
+  {
+    "name": "Bulock Community Clinic",
+    "region": "Western Two"
+  },
+  {
+    "name": "Kassagne Community Clinic",
+    "region": "Western Two"
+  },
+  {
+    "name": "Farato Community Clinic",
+    "region": "Western Two"
+  },
+  {
+    "name": "Brikama Nyambai Clinic",
+    "region": "Western Two"
+  },
+  {
+    "name": "Brikama Wellingara Clinic",
+    "region": "Western Two"
+  },
+  {
+    "name": "Bondali Clinic",
+    "region": "Western Two"
+  },
+  {
+    "name": "CHN School",
+    "region": "Lower River Region"
+  },
+  {
+    "name": "Kwinella Minor Health Center",
+    "region": "Lower River Region"
+  },
+  {
+    "name": "Kaiaf Minor Health Center",
+    "region": "Lower River Region"
+  },
+  {
+    "name": "Jiffarong Minor Health Center",
+    "region": "Lower River Region"
+  },
+  {
+    "name": "Jalangbereh Minor Health Center",
+    "region": "Lower River Region"
+  },
+  {
+    "name": "Pakaliba Minor Health Center",
+    "region": "Lower River Region"
+  },
+  {
+    "name": "Kolior Community Clinic",
+    "region": "Lower River Region"
+  },
+  {
+    "name": "Lower River Region RHD",
+    "region": "Lower River Region"
+  },
+  {
+    "name": "Soma District Hospital",
+    "region": "Lower River Region"
+  },
+  {
+    "name": "Jali Minor Health Center",
+    "region": "Lower River Region"
+  },
+  {
+    "name": "Kiang Karantaba Minor Health Center",
+    "region": "Lower River Region"
+  },
+  {
+    "name": "Bureng Minor Health Center",
+    "region": "Lower River Region"
+  },
+  {
+    "name": "North Bank West RHD",
+    "region": "North Bank Region West"
+  },
+  {
+    "name": "Essau District Hospital",
+    "region": "North Bank Region West"
+  },
+  {
+    "name": "Kerr Cherno Minor Health Center",
+    "region": "North Bank Region West"
+  },
+  {
+    "name": "Ndungu Kebbeh Community Clinic",
+    "region": "North Bank Region West"
+  },
+  {
+    "name": "Albreda Minor Health Center",
+    "region": "North Bank Region West"
+  },
+  {
+    "name": "Kuntair Minor Health Center",
+    "region": "North Bank Region West"
+  },
+  {
+    "name": "Fass Njaga Choi Community Clinic",
+    "region": "North Bank Region West"
+  },
+  {
+    "name": "Madina Seringe Mass Community Clinic",
+    "region": "North Bank Region West"
+  },
+  {
+    "name": "Macca Balla Manneh Community Clinic",
+    "region": "North Bank Region West"
+  },
+  {
+    "name": "Chesay Ma Jaw Minor Health Center",
+    "region": "North Bank Region West"
+  },
+  {
+    "name": "Nema Kunku Community Clinic",
+    "region": "North Bank Region West"
+  },
+  {
+    "name": "North Bank East RHD",
+    "region": "North Bank Region East"
+  },
+  {
+    "name": "Farafenni General Hospital",
+    "region": "North Bank Region East"
+  },
+  {
+    "name": "Njaba Kunda Minor Health Center",
+    "region": "North Bank Region East"
+  },
+  {
+    "name": "Illiassa Minor Health Center",
+    "region": "North Bank Region East"
+  },
+  {
+    "name": "Kerewan Minor Health Center",
+    "region": "North Bank Region East"
+  },
+  {
+    "name": "Sara Kunda Minor Health Center",
+    "region": "North Bank Region East"
+  },
+  {
+    "name": "Ngen Sanjal Minor Health Center",
+    "region": "North Bank Region East"
+  },
+  {
+    "name": "Daru Rilwan Community Clinic",
+    "region": "North Bank Region East"
+  },
+  {
+    "name": "Njawara Community Clinic",
+    "region": "North Bank Region East"
+  },
+  {
+    "name": "Salikenni Minor Health Center",
+    "region": "North Bank Region East"
+  },
+  {
+    "name": "Farafenni RCH",
+    "region": "North Bank Region East"
+  },
+  {
+    "name": "Kunting Community Clinic",
+    "region": "Central River Region"
+  },
+  {
+    "name": "Kaur Minor Health Center",
+    "region": "Central River Region"
+  },
+  {
+    "name": "Jahanka Minor Health Center",
+    "region": "Central River Region"
+  },
+  {
+    "name": "Bansang RCH",
+    "region": "Central River Region"
+  },
+  {
+    "name": "Bansang SEN School",
+    "region": "Central River Region"
+  },
+  {
+    "name": "Central River Region RHD",
+    "region": "Central River Region"
+  },
+  {
+    "name": "Niamina Dankuku Minor Health Center",
+    "region": "Central River Region"
+  },
+  {
+    "name": "Kudang Minor Health Center",
+    "region": "Central River Region"
+  },
+  {
+    "name": "Brikamaba Minor Health Center",
+    "region": "Central River Region"
+  },
+  {
+    "name": "Janjanbureh Minor Health Center",
+    "region": "Central River Region"
+  },
+  {
+    "name": "Bansang General Hospital",
+    "region": "Central River Region"
+  },
+  {
+    "name": "Sami Karantaba Minor Health Center",
+    "region": "Central River Region"
+  },
+  {
+    "name": "Kuntaur Major Health Center",
+    "region": "Central River Region"
+  },
+  {
+    "name": "Chamen Minor Health Center",
+    "region": "Central River Region"
+  },
+  {
+    "name": "Njau Minor Health Center",
+    "region": "Central River Region"
+  },
+  {
+    "name": "Gambisara Minor Health Center",
+    "region": "Upper River Region"
+  },
+  {
+    "name": "Sabi Minor Health Center",
+    "region": "Upper River Region"
+  },
+  {
+    "name": "Diabugu Minor Health Center",
+    "region": "Upper River Region"
+  },
+  {
+    "name": "Makamang Kunda (Ajj) Minor Health Center",
+    "region": "Upper River Region"
+  },
+  {
+    "name": "Upper River Region RHD",
+    "region": "Upper River Region"
+  },
+  {
+    "name": "Demba Kunda Kuta Minor Health Center",
+    "region": "Upper River Region"
+  },
+  {
+    "name": "Gunjur Kuta Community Clinic",
+    "region": "Upper River Region"
+  },
+  {
+    "name": "Foday Kunda Minor Health Center",
+    "region": "Upper River Region"
+  },
+  {
+    "name": "Fatoto Minor Health Center",
+    "region": "Upper River Region"
+  },
+  {
+    "name": "Baja Kunda Minor Health Center",
+    "region": "Upper River Region"
+  },
+  {
+    "name": "Hon.Assan Musa Camara/Tumana Minor Health Center",
+    "region": "Upper River Region"
+  },
+  {
+    "name": "Demba Kunda Koto Minor Health Center",
+    "region": "Upper River Region"
+  },
+  {
+    "name": "Yerrobawol Minor Health Center",
+    "region": "Upper River Region"
+  },
+  {
+    "name": "Basse District Hospital",
+    "region": "Upper River Region"
+  },
+  {
+    "name": "Directorate Of Planning And Information",
+    "region": "Central Level"
+  },
+  {
+    "name": "National Malaria Control Program",
+    "region": "Central Level"
+  },
+  {
+    "name": "National Leprosy And Tb Control Program",
+    "region": "Central Level"
+  },
+  {
+    "name": "Ministry Of Health",
+    "region": "Central Level"
+  },
+  {
+    "name": "Edward Francis Small Teaching Hospital",
+    "region": "Western One"
+  },
+  {
+    "name": "Basori Community Clinic",
+    "region": "Western Two"
+  },
+  {
+    "name": "Kalagi Minor Health Center",
+    "region": "Western Two"
+  },
+  {
+    "name": "Kampassa Community Clinic",
+    "region": "Western Two"
+  },
+  {
+    "name": "Kanilai Community Clinic",
+    "region": "Western Two"
+  },
+  {
+    "name": "Kappa Health Post",
+    "region": "Western Two"
+  },
+  {
+    "name": "Mayork Community Clinic",
+    "region": "Western Two"
+  },
+  {
+    "name": "Tampoto Community Clinic",
+    "region": "Western Two"
+  },
+  {
+    "name": "Batabutu Kantora Health Post",
+    "region": "Western Two"
+  },
+  {
+    "name": "Faraba Kairaba Community Clinic",
+    "region": "Western Two"
+  },
+  {
+    "name": "Janack Community Clinic",
+    "region": "Western Two"
+  },
+  {
+    "name": "Narang Health Post",
+    "region": "Western Two"
+  },
+  {
+    "name": "Nyofelleh Community Clinic",
+    "region": "Western Two"
+  },
+  {
+    "name": "Alkaly Nyakudy Drammeh Minor Health Center",
+    "region": "Lower River Region"
+  },
+  {
+    "name": "Dongoroba Minor Health Center",
+    "region": "Lower River Region"
+  },
+  {
+    "name": "Jappineh Community Clinic",
+    "region": "Lower River Region"
+  },
+  {
+    "name": "Kuli Kunda Clinic",
+    "region": "Lower River Region"
+  },
+  {
+    "name": "Nema Community Clinic",
+    "region": "Lower River Region"
+  },
+  {
+    "name": "Sare Musa Community Clinic",
+    "region": "Lower River Region"
+  },
+  {
+    "name": "Sibito Clinic",
+    "region": "Lower River Region"
+  },
+  {
+    "name": "Sutukung Community Clinic",
+    "region": "Lower River Region"
+  },
+  {
+    "name": "Toniataba Community Clinic",
+    "region": "Lower River Region"
+  },
+  {
+    "name": "Bakang Community Clinic",
+    "region": "North Bank Region West"
+  },
+  {
+    "name": "Buniadou Community Clinic",
+    "region": "North Bank Region West"
+  },
+  {
+    "name": "Ginack Community Clinic",
+    "region": "North Bank Region West"
+  },
+  {
+    "name": "Jurunku Community Clinic",
+    "region": "North Bank Region West"
+  },
+  {
+    "name": "Touba Kolong Community Clinic",
+    "region": "North Bank Region West"
+  },
+  {
+    "name": "Bakindick Community Clinic",
+    "region": "North Bank Region West"
+  },
+  {
+    "name": "Kerr Njugary Community Clinic",
+    "region": "North Bank Region West"
+  },
+  {
+    "name": "Kerr Mama Community Clinic",
+    "region": "North Bank Region West"
+  },
+  {
+    "name": "Bambally Community Clinic",
+    "region": "North Bank Region East"
+  },
+  {
+    "name": "Katchang Community Clinic",
+    "region": "North Bank Region East"
+  },
+  {
+    "name": "Nawleru Community Clinic",
+    "region": "North Bank Region East"
+  },
+  {
+    "name": "Noo Kunda Community Clinic",
+    "region": "North Bank Region East"
+  },
+  {
+    "name": "Saaba Community Clinic",
+    "region": "North Bank Region East"
+  },
+  {
+    "name": "Balllangharr Kerr Ndery Community Clinic",
+    "region": "Central River Region"
+  },
+  {
+    "name": "Firdawsy Community Clinic",
+    "region": "Central River Region"
+  },
+  {
+    "name": "Jailan Bakadagi Community Clinic",
+    "region": "Central River Region"
+  },
+  {
+    "name": "Jamally Ganyado Community Clinic",
+    "region": "Central River Region"
+  },
+  {
+    "name": "Jessadi Community Clinic",
+    "region": "Central River Region"
+  },
+  {
+    "name": "Katamina Community Clinic",
+    "region": "Central River Region"
+  },
+  {
+    "name": "Madina Umfally Community Clinic",
+    "region": "Central River Region"
+  },
+  {
+    "name": "Nana Village OPD",
+    "region": "Central River Region"
+  },
+  {
+    "name": "Njoben Community Clinic",
+    "region": "Central River Region"
+  },
+  {
+    "name": "Pinai Community Clinic",
+    "region": "Central River Region"
+  },
+  {
+    "name": "Sami Madina Community Clinic",
+    "region": "Central River Region"
+  },
+  {
+    "name": "Sare Soffie Community Clinic",
+    "region": "Central River Region"
+  },
+  {
+    "name": "Bakadajie Community Clinic",
+    "region": "Upper River Region"
+  },
+  {
+    "name": "Kuwonku-Ba Community Clinic",
+    "region": "Upper River Region"
+  },
+  {
+    "name": "Numuyel Community Clinic",
+    "region": "Upper River Region"
+  },
+  {
+    "name": "Sare Gubu Community Clinic",
+    "region": "Upper River Region"
+  },
+  {
+    "name": "Sotuma Sere Community Clinic",
+    "region": "Upper River Region"
+  },
+  {
+    "name": "Chamoi Kunda Community Clinic",
+    "region": "Upper River Region"
+  },
+  {
+    "name": "Changally Lang Kaddy Community Clinic",
+    "region": "Upper River Region"
+  },
+  {
+    "name": "Darsilameh Community Clinic",
+    "region": "Upper River Region"
+  },
+  {
+    "name": "Garawol Minor Health Center",
+    "region": "Upper River Region"
+  },
+  {
+    "name": "Koina Minor Health Center",
+    "region": "Upper River Region"
+  },
+  {
+    "name": "Perai Community Clinic",
+    "region": "Upper River Region"
+  },
+  {
+    "name": "Sutukoba Community Clinic",
+    "region": "Upper River Region"
+  },
+  {
+    "name": "Tumana Minor Health Center",
+    "region": "Upper River Region"
+  }
 ]
