@@ -1,14 +1,13 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createLazyFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { auth, signInWithEmailAndPassword, needsPasswordChange } from "@/lib/firebase";
-import { ChangePasswordDialog } from "@/components/ChangePasswordDialog";
+import { auth, signInWithEmailAndPassword } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Eye, EyeOff } from "lucide-react";
 
-export const Route = createFileRoute("/login")({
+export const Route = createLazyFileRoute("/login")({
   head: () => ({
     meta: [
       { title: "Login — SysMonitor" },
@@ -26,7 +25,6 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [showChangePassword, setShowChangePassword] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -38,19 +36,9 @@ function LoginPage() {
 
     setIsLoading(true);
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      
-      // Check if user needs to change password (first time login with default password)
-      const needsChange = await needsPasswordChange(userCredential.user.uid);
-      
-      if (needsChange) {
-        // Show password change dialog
-        setShowChangePassword(true);
-      } else {
-        // User has already changed password, proceed to settings
-        toast.success("Logged in successfully");
-        navigate({ to: "/settings" });
-      }
+      await signInWithEmailAndPassword(auth, email, password);
+      toast.success("Logged in successfully");
+      navigate({ to: "/settings" });
     } catch (error: any) {
       // Map Firebase error codes to user-friendly messages
       const errorCode = error.code;
@@ -164,18 +152,6 @@ function LoginPage() {
           </div>
         </form>
       </div>
-
-      {/* Password Change Dialog */}
-      <ChangePasswordDialog
-        open={showChangePassword}
-        onClose={() => setShowChangePassword(false)}
-        onSuccess={() => {
-          toast.success("Password changed successfully! Please log in with your new password.");
-          setShowChangePassword(false);
-          // Clear password field so they re-enter with new password
-          setPassword("");
-        }}
-      />
     </div>
   );
 }

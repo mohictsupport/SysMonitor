@@ -8,10 +8,9 @@ import {
   setPersistence,
   browserLocalPersistence,
   browserSessionPersistence,
-  updatePassword,
   type User,
 } from "firebase/auth";
-import { getFirestore, Firestore, doc, getDoc, setDoc } from "firebase/firestore";
+import { getFirestore, Firestore } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCyN1cf1y8o0Eyf1wwGK3xtCRtqprprWWM",
@@ -35,36 +34,7 @@ export const auth: Auth = getAuth(app);
 export const db: Firestore = getFirestore(app);
 
 // Auth functions
-export { signInWithEmailAndPassword, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence, browserSessionPersistence, updatePassword, User };
-
-// Helper to check if user needs to change password (first login with default password)
-export async function needsPasswordChange(userId: string): Promise<boolean> {
-  try {
-    const userDoc = await getDoc(doc(db, "users", userId));
-    if (userDoc.exists()) {
-      const data = userDoc.data();
-      return data.passwordChanged !== true;
-    }
-    // If user document doesn't exist, they need to change password
-    return true;
-  } catch (error) {
-    console.error("Error checking password change status:", error);
-    return true;
-  }
-}
-
-// Helper to mark password as changed
-export async function markPasswordChanged(userId: string): Promise<void> {
-  try {
-    await setDoc(doc(db, "users", userId), {
-      passwordChanged: true,
-      passwordChangedAt: new Date().toISOString(),
-    }, { merge: true });
-  } catch (error) {
-    console.error("Error marking password as changed:", error);
-    throw error;
-  }
-}
+export { signInWithEmailAndPassword, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence, browserSessionPersistence, User };
 
 // Helper to check if user is authenticated
 export function getCurrentUser(): User | null {

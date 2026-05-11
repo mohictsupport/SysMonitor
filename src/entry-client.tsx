@@ -25,7 +25,7 @@ onlineManager.setEventListener((setOnline) => {
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 300_000, // 5 minutes
+      staleTime: 60_000,
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
       retry: 1,

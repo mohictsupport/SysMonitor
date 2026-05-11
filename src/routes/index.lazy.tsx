@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createLazyFileRoute, Link } from "@tanstack/react-router";
 import { TopNav } from "@/components/TopNav";
 import { SiteCard } from "@/components/SiteCard";
 import { NetBirdSyncStatus } from "@/components/NetBirdSyncStatus";
@@ -10,9 +10,8 @@ import { SiteDetailModal } from "./sites.lazy";
 import { useMemo, useState, useEffect } from "react";
 import type { SiteStatus, Site } from "@/lib/sites-data";
 import { Plus, Server, ChevronDown, ChevronUp } from "lucide-react";
-import { Link } from "@tanstack/react-router";
 
-export const Route = createFileRoute("/")({
+export const Route = createLazyFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Dashboard — SysMonitor" },

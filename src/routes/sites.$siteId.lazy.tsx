@@ -1,4 +1,4 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createLazyFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useCallback } from "react";
 import { Pencil, Check, X } from "lucide-react";
@@ -11,7 +11,7 @@ import { TopNav } from "@/components/TopNav";
 import { useHasApiKey } from "@/lib/auth-utils";
 import { ApiKeyGate } from "@/components/ApiKeyGate";
 
-export const Route = createFileRoute("/sites/$siteId")({
+export const Route = createLazyFileRoute("/sites/$siteId")({
   head: ({ params }) => ({
     meta: [
       { title: `${params.siteId} — SysMonitor` },

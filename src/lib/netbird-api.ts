@@ -261,6 +261,61 @@ export async function checkProvisioningStatus(
   }
 }
 
+// ===== PEER MANAGEMENT =====
+
+export async function updateNetbirdPeer({
+  peerId,
+  name,
+}: {
+  peerId: string;
+  name: string;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    await apiRequest(`/peers/${peerId}`, {
+      method: "PUT",
+      body: JSON.stringify({ name }),
+    });
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: String(error) };
+  }
+}
+
+// ===== HTTP PROBE =====
+
+export interface ProbeResult {
+  ok: boolean;
+  status: number | null;
+  latencyMs: number;
+  detail: string;
+}
+
+export async function probeHttp({ url }: { url: string }): Promise<ProbeResult> {
+  const start = performance.now();
+  try {
+    const response = await fetch(url, {
+      method: "HEAD",
+      mode: "no-cors",
+      cache: "no-cache",
+    });
+    const latencyMs = Math.round(performance.now() - start);
+    return {
+      ok: response.ok,
+      status: response.status,
+      latencyMs,
+      detail: response.ok ? "OK" : `HTTP ${response.status}`,
+    };
+  } catch (error) {
+    const latencyMs = Math.round(performance.now() - start);
+    return {
+      ok: false,
+      status: null,
+      latencyMs,
+      detail: error instanceof Error ? error.message : "Network error",
+    };
+  }
+}
+
 // ===== UTILITY =====
 
 export async function testConnection(): Promise<{ success: boolean; error?: string }> {

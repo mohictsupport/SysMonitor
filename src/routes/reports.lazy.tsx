@@ -51,8 +51,7 @@ import {
   CheckCircle,
   AlertCircle
 } from "lucide-react";
-import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
+// jsPDF dynamically imported in exportPDF function for code splitting
 
 export const Route = createLazyFileRoute("/reports")({
   head: () => ({
@@ -285,13 +284,18 @@ function ReportsPage() {
     setModalView("daily");
   };
 
-  // If no API key, show the gate
-  if (!hasApiKey) {
+  // If no API key or API error, show gate/error
+  if (!hasApiKey || sitesError) {
     return (
       <div className="min-h-dvh bg-background text-foreground">
         <TopNav />
         <main className="mx-auto max-w-[1600px] p-6">
-          <ApiKeyGate />
+          {!hasApiKey ? <ApiKeyGate /> : (
+            <div className="text-center py-8">
+              <p className="text-red-500 font-medium">NetBird API connection failed</p>
+              <p className="text-muted-foreground mt-2">Reports require valid API connection to show site data.</p>
+            </div>
+          )}
         </main>
       </div>
     );
@@ -316,6 +320,11 @@ function ReportsPage() {
   };
 
   const exportPDF = async () => {
+    // Dynamically import jsPDF and autoTable only when needed
+    const [{ jsPDF }, autoTable] = await Promise.all([
+      import("jspdf"),
+      import("jspdf-autotable").then(m => m.default)
+    ]);
     const doc = new jsPDF();
     const now = new Date();
     const dateStr = now.toLocaleDateString();

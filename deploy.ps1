@@ -89,7 +89,7 @@ Write-Host ""
 # One-line deployment command
 Write-Host "# 4. One line auto deploy command" -ForegroundColor Gray
 
-$deployCommand = "git add .; git commit -m `"Release v$newVersion`"; git push; git tag v$newVersion; git push origin v$newVersion; taskkill /F /IM SysMonitor.exe 2>`$null; npm run electron:build"
+$deployCommand = "git add .; git commit -m `"Release v$newVersion`"; git push; git tag v$newVersion; git push origin v$newVersion; npm run electron:build"
 
 Write-Host $deployCommand -ForegroundColor Green
 

@@ -23,23 +23,28 @@ import {
 import { loadPendingSites } from "@/lib/site-onboarding";
 import { loadPeerStatusHistory } from "@/lib/peer-status-history";
 
-// Check auth state helper
-function getCurrentUser(): Promise<User | null> {
-  return new Promise((resolve) => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      unsubscribe();
-      resolve(user);
-    });
-  });
-}
+// Check auth state helper - TEMPORARILY DISABLED
+// function getCurrentUser(): Promise<User | null> {
+//   return new Promise((resolve) => {
+//     const unsubscribe = onAuthStateChanged(auth, (user) => {
+//       unsubscribe();
+//       resolve(user);
+//     });
+//   });
+// }
 
 export const Route = createLazyFileRoute("/settings")({
+  // beforeLoad temporarily removed - will restore login later
+  // beforeLoad: async () => {
+  //   const user = await getCurrentUser();
+  //   if (!user) {
+  //     throw redirect({ to: "/login" });
+  //   }
+  //   return { user };
+  // },
   beforeLoad: async () => {
-    const user = await getCurrentUser();
-    if (!user) {
-      throw redirect({ to: "/login" });
-    }
-    return { user };
+    // No auth check for now
+    return { user: null };
   },
   head: () => ({
     meta: [
@@ -100,12 +105,12 @@ function SettingsPage() {
     loadPreferences();
     hasMounted.current = true;
 
-    // Auto-signout when leaving settings page
-    return () => {
-      if (auth.currentUser) {
-        signOut(auth).catch(() => {});
-      }
-    };
+    // Auto-signout when leaving settings page - TEMPORARILY DISABLED
+    // return () => {
+    //   if (auth.currentUser) {
+    //     signOut(auth).catch(() => {});
+    //   }
+    // };
   }, []);
 
   const handleToggleAlertSounds = async () => {
