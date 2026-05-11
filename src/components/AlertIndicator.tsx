@@ -26,6 +26,25 @@ export function AlertIndicator({ sites, isNetworkOnline = true, apiError, isLoad
   const prevAlertIdsRef = useRef<string[]>([]);
   const [isMounted, setIsMounted] = useState(false);
 
+  // Helper to check if OS is a device (Android, iOS, Windows, macOS, Linux - user devices)
+  const isDeviceOS = (os?: string) => {
+    if (!os) return false;
+    const osLower = os.toLowerCase();
+    return (
+      osLower.includes("android") ||
+      osLower.includes("ios") ||
+      osLower.includes("iphone") ||
+      osLower.includes("ipad") ||
+      (osLower.includes("windows") && !osLower.includes("server")) ||
+      osLower.includes("macos") ||
+      osLower.includes("darwin") ||
+      osLower.includes("linux") // Linux laptops/desktops are devices
+    );
+  };
+
+  // Filter out devices - only count infrastructure sites
+  const infrastructureSites = sites.filter((s) => !isDeviceOS(s.os));
+
   useEffect(() => {
     setIsMounted(true);
   }, []);
@@ -70,7 +89,7 @@ export function AlertIndicator({ sites, isNetworkOnline = true, apiError, isLoad
     }
     return {
       text: "Online",
-      subtext: `${sites.filter(s => s.status === "online").length} sites up`,
+      subtext: `${infrastructureSites.filter(s => s.status === "online").length} sites up`,
       color: { text: "text-phosphor", bg: "bg-phosphor", border: "border-phosphor/40", bgLight: "bg-phosphor/10" }
     };
   };

@@ -135,7 +135,7 @@
 A: Yes, update the `password` field in Firestore `access_key/main` document. Changes take effect immediately.
 
 **Q: How often does it sync?**
-A: By default, every 1 minute for NetBird peer data.
+A: By default, every 5 minutes for NetBird peer data.
 
 **Q: Can I monitor sites without NetBird?**
 A: SysMonitor is specifically designed for NetBird VPN infrastructure.

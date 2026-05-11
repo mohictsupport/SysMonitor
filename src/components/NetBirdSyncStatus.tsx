@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import type { UseQueryResult } from "@tanstack/react-query";
 
-const SYNC_INTERVAL = 60000; // 60 seconds (1 minute)
-const STALE_THRESHOLD = 30000; // 30 seconds - matches TanStack Query staleTime (half of sync interval)
+const SYNC_INTERVAL = 300000; // 300 seconds (5 minutes)
+const STALE_THRESHOLD = 150000; // 150 seconds - matches TanStack Query staleTime (half of sync interval)
 
 interface NetBirdSyncStatusProps {
   query: UseQueryResult<any, any>;
@@ -106,7 +106,7 @@ export function NetBirdSyncStatus({ query, lastSyncTime }: NetBirdSyncStatusProp
   const countdown = Math.max(0, Math.ceil((SYNC_INTERVAL - elapsedMs) / 1000));
   const progressPercent = (elapsedMs / SYNC_INTERVAL) * 100;
 
-  // Status colors - STALE_THRESHOLD (30s) matches TanStack Query config
+  // Status colors - STALE_THRESHOLD (150s) matches TanStack Query config
   const isStale = timeSinceSync > STALE_THRESHOLD;
   const isFailing = fetchFailureCount > 0;
 
@@ -231,7 +231,7 @@ export function NetBirdSyncBadge({
 
   const actualLastSync = getLastSyncTime();
   const timeSince = Date.now() - actualLastSync;
-  const isStale = timeSince > STALE_THRESHOLD; // 30 seconds - consistent with full status
+  const isStale = timeSince > 150000; // 150 seconds - consistent with full status
 
   return (
     <div className="flex items-center gap-1.5">
