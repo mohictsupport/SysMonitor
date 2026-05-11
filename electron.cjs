@@ -21,6 +21,9 @@ let updateStatus = {
   percent: 0,
 };
 
+// Track last notified version to prevent duplicate notifications
+let lastNotifiedVersion = null;
+
 // Send update status to renderer
 function sendUpdateStatus() {
   if (mainWindow && !mainWindow.isDestroyed()) {
@@ -248,8 +251,15 @@ function setupAutoUpdater() {
   autoUpdater.on('update-available', (info) => {
     console.log('[AutoUpdater] Update available:', info.version);
     
+    // Skip if already downloading this version
+    if (downloadState.isDownloading && downloadState.version === info.version) {
+      console.log('[AutoUpdater] Download already in progress for', info.version);
+      return;
+    }
+    
     // Check if we have a partial download to resume
     const hasPartialDownload = downloadState.version === info.version && downloadState.downloadedBytes > 0;
+    const alreadyNotified = lastNotifiedVersion === info.version;
     
     updateStatus = {
       checking: false,
@@ -260,16 +270,31 @@ function setupAutoUpdater() {
       percent: hasPartialDownload ? Math.round((downloadState.downloadedBytes / downloadState.totalBytes) * 100) : 0,
       canResume: hasPartialDownload,
     };
-    sendUpdateStatus();
+    
+    // Only send status update if we haven't already notified about this version
+    if (!alreadyNotified) {
+      lastNotifiedVersion = info.version;
+      sendUpdateStatus();
+    }
     
     // Auto-start download if no partial download exists, or resume if available
     if (hasPartialDownload) {
       console.log('[AutoUpdater] Resuming download from', downloadState.downloadedBytes, 'bytes');
     }
     
+    // Mark as downloading before starting
+    downloadState = {
+      ...downloadState,
+      version: info.version,
+      isDownloading: true,
+    };
+    saveDownloadState();
+    
     // Start download (electron-updater handles resume internally via HTTP range requests)
     autoUpdater.downloadUpdate().catch((err) => {
       console.error('[AutoUpdater] Download failed:', err);
+      downloadState.isDownloading = false;
+      saveDownloadState();
     });
 
     // System notification disabled - app uses its own UI notifications
@@ -323,6 +348,13 @@ function setupAutoUpdater() {
       version: info.version,
       percent: 100,
     };
+    
+    // Clear download state since we have the full update
+    clearDownloadState();
+    
+    // Reset last notified version so future updates can be notified
+    lastNotifiedVersion = null;
+    
     sendUpdateStatus();
 
     // System notification disabled - app uses its own UI notifications
@@ -353,7 +385,8 @@ function setupAutoUpdater() {
 
   // Periodic check every 30 minutes
   setInterval(() => {
-    if (!updateStatus.downloaded) {
+    // Skip check if update already available or downloaded
+    if (!updateStatus.available && !updateStatus.downloaded) {
       console.log('[AutoUpdater] Periodic update check...');
       autoUpdater.checkForUpdates().catch(() => {});
     }
