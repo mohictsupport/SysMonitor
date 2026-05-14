@@ -14,13 +14,7 @@ import { NetBirdApiSettings } from "@/components/NetBirdApiSettings";
 import { clearAllSites } from "@/lib/use-sites";
 import { TelegramSettings } from "@/components/TelegramSettings";
 import { auth, onAuthStateChanged, signOut, type User } from "@/lib/firebase";
-import {
-  getUserPreferences,
-  saveUserPreferences,
-  saveProvisioningEntry,
-  saveUptimeHistory,
-} from "@/lib/firebase-store";
-import { loadPendingSites } from "@/lib/site-onboarding";
+import { getUserPreferences, saveUserPreferences } from "@/lib/firebase-store";
 import { loadPeerStatusHistory } from "@/lib/peer-status-history";
 
 // Check auth state helper - TEMPORARILY DISABLED
@@ -63,12 +57,6 @@ function SettingsPage() {
   const queryClient = useQueryClient();
   const [alertSounds, setAlertSounds] = useState(false);
   const [notifications, setNotifications] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [syncResult, setSyncResult] = useState<{
-    success: number;
-    failed: number;
-    message: string;
-  } | null>(null);
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
   const [updateStatus, setUpdateStatus] = useState<{
     checking: boolean;
@@ -78,6 +66,7 @@ function SettingsPage() {
     version: string | null;
   } | null>(null);
   const hasMounted = useRef(false);
+  const lastNotifiedUpdateVersion = useRef<string | null>(null);
 
   useEffect(() => {
     const loadPreferences = async () => {
@@ -157,116 +146,7 @@ function SettingsPage() {
     }
   };
 
-  const handleSyncData = async () => {
-    // Use user from route context (guaranteed to be authenticated by beforeLoad)
-    const user = routeUser || auth.currentUser;
-    if (!user) {
-      setSyncResult({ success: 0, failed: 0, message: "Not authenticated" });
-      return;
-    }
-    console.log("[Sync] ========================================");
-    console.log("[Sync] Starting sync for user:", user.uid);
-    console.log("[Sync] User email:", user.email);
 
-    setIsSyncing(true);
-    setSyncResult(null);
-    let success = 0;
-    let failed = 0;
-
-    try {
-      // 1. Sync user preferences
-      console.log("[Sync] Step 1: User preferences");
-      try {
-        await saveUserPreferences(user.uid, {
-          notificationSettings: {
-            desktopEnabled: notifications,
-          },
-        });
-        success++;
-        console.log("[Sync] ✓ User preferences synced");
-      } catch (err: any) {
-        failed++;
-        console.error("[Sync] Failed to sync user preferences:", err);
-      }
-
-      // 2. Sync pending sites
-      console.log("[Sync] Step 2: Pending sites");
-      try {
-        const pendingSites = loadPendingSites();
-        for (const site of pendingSites) {
-          await saveProvisioningEntry({
-            setupKey: site.setupKey,
-            siteName: site.name,
-            location: site.location,
-            hostname: site.name.toLowerCase().replace(/\s+/g, "-"),
-            status: site.status,
-            userId: user.uid,
-          });
-          success++;
-        }
-      } catch (err) {
-        console.error("[Sync] Failed to sync pending sites:", err);
-        failed++;
-      }
-
-      // 3. Sync peer status history
-      console.log("[Sync] Step 3: Peer status history");
-      try {
-        const peerHistory = loadPeerStatusHistory();
-        for (const entry of peerHistory) {
-          await saveUptimeHistory({
-            siteId: entry.peerId,
-            siteName: entry.siteName || entry.peerId,
-            status: entry.status,
-            userId: user.uid,
-          });
-          success++;
-        }
-      } catch (err) {
-        console.error("[Sync] Failed to sync peer status history:", err);
-        failed++;
-      }
-
-      // 4. Sync uptime history from localStorage
-      console.log("[Sync] Step 4: Uptime history");
-      try {
-        const uptimeHistoryRaw = localStorage.getItem("sysmonitor.uptimeHistory.v1");
-        if (uptimeHistoryRaw) {
-          const uptimeHistory = JSON.parse(uptimeHistoryRaw);
-          if (uptimeHistory.events) {
-            for (const event of uptimeHistory.events) {
-              await saveUptimeHistory({
-                siteId: event.siteId,
-                siteName: event.siteId,
-                status: event.status,
-                userId: user.uid,
-              });
-              success++;
-            }
-          }
-        }
-      } catch (err) {
-        console.error("[Sync] Failed to sync uptime history:", err);
-        failed++;
-      }
-
-      const message =
-        failed > 0
-          ? `Synced ${success} items, ${failed} failed. Check console for details.`
-          : `Successfully synced ${success} items to cloud`;
-
-      setSyncResult({ success, failed, message });
-    } catch (error: any) {
-      console.error("[Sync] Sync failed:", error);
-      setSyncResult({
-        success,
-        failed,
-        message: `Sync error: ${error?.message || "Unknown error"}. Check console.`,
-      });
-    } finally {
-      setIsSyncing(false);
-    }
-  };
 
   const handleClearCache = () => {
     if (
@@ -368,7 +248,10 @@ function SettingsPage() {
           toast.error(formatUpdateError(status.error));
           setIsCheckingUpdate(false);
         } else if (status.available && !status.checking) {
-          toast.info(`Update available: ${status.version}`);
+          if (status.version && lastNotifiedUpdateVersion.current !== status.version) {
+            toast.info(`Update available: ${status.version}`);
+            lastNotifiedUpdateVersion.current = status.version;
+          }
         }
       });
 
@@ -515,34 +398,12 @@ function SettingsPage() {
           </div>
         </div>
 
-        {/* Cloud Sync */}
+        {/* Data Management */}
         <div className="mb-8 border border-border bg-panel p-6">
           <h2 className="mb-4 font-mono text-[11px] font-bold uppercase tracking-widest text-dim">
-            Cloud Sync
+            Data Management
           </h2>
           <div className="space-y-4">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="font-mono text-[10px] text-dim">Sync local data to Firestore cloud</p>
-                <p className="font-mono text-[10px] text-dim/60">
-                  Pending sites · Uptime history · User preferences
-                </p>
-                {syncResult && (
-                  <p
-                    className={`font-mono text-[10px] mt-2 ${syncResult.failed > 0 ? "text-alert" : "text-phosphor"}`}
-                  >
-                    {syncResult.message}
-                  </p>
-                )}
-              </div>
-              <button
-                onClick={handleSyncData}
-                disabled={isSyncing}
-                className="border border-phosphor/40 bg-phosphor/10 px-4 py-2 font-mono text-[11px] uppercase tracking-widest text-phosphor transition-colors hover:bg-phosphor/20 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSyncing ? "⟳ Syncing..." : "↻ Sync Data"}
-              </button>
-            </div>
             <div className="flex items-start justify-between pt-4 border-t border-border">
               <div>
                 <p className="font-mono text-[10px] text-dim">Clear local cache and storage</p>

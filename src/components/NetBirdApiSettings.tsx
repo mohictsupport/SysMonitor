@@ -17,6 +17,8 @@ import {
   Clock,
 } from "lucide-react";
 import { isElectron } from "@/lib/electron-notifications";
+import { AccessCodeModal } from "./AccessCodeModal";
+import { useAccessKey } from "@/lib/use-access-key";
 
 interface NetBirdApiSettingsProps {
   onSave?: () => void;
@@ -32,6 +34,11 @@ export function NetBirdApiSettings({ onSave, onClearCacheAndRefetch }: NetBirdAp
   const [isElectronApp, setIsElectronApp] = useState(false);
   const [apiKeyExpiry, setApiKeyExpiry] = useState<string>("");
   const [showInputFields, setShowInputFields] = useState(false);
+  
+  // Access code protection
+  const [isAccessModalOpen, setIsAccessModalOpen] = useState(false);
+  const [accessError, setAccessError] = useState<string | null>(null);
+  const { verifyAccessKey } = useAccessKey();
   useEffect(() => {
     setIsElectronApp(isElectron());
     checkStoredKey();
@@ -309,13 +316,37 @@ export function NetBirdApiSettings({ onSave, onClearCacheAndRefetch }: NetBirdAp
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setShowInputFields(true)}
+              onClick={() => {
+                setIsAccessModalOpen(true);
+                setAccessError(null);
+              }}
               className="mt-2"
             >
               Update Key / Change Expiry
             </Button>
           </div>
         )}
+
+        {/* Access Code Modal */}
+        <AccessCodeModal
+          isOpen={isAccessModalOpen}
+          onClose={() => {
+            setIsAccessModalOpen(false);
+            setAccessError(null);
+          }}
+          onVerify={(password) => {
+            if (verifyAccessKey(password)) {
+              setIsAccessModalOpen(false);
+              setAccessError(null);
+              setShowInputFields(true);
+            } else {
+              setAccessError("Incorrect access code");
+            }
+          }}
+          error={accessError}
+          title="Update API Key - Access Required"
+          description="Please enter the access code to update your NetBird API key."
+        />
 
         {/* Message */}
         {message && (

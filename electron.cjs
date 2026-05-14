@@ -23,6 +23,7 @@ let updateStatus = {
 
 // Track last notified version to prevent duplicate notifications
 let lastNotifiedVersion = null;
+let isDownloadingInSession = false;
 
 // Send update status to renderer
 function sendUpdateStatus() {
@@ -251,8 +252,8 @@ function setupAutoUpdater() {
   autoUpdater.on('update-available', (info) => {
     console.log('[AutoUpdater] Update available:', info.version);
     
-    // Skip if already downloading this version
-    if (downloadState.isDownloading && downloadState.version === info.version) {
+    // Skip if already downloading this version in THIS session
+    if (isDownloadingInSession && downloadState.version === info.version) {
       console.log('[AutoUpdater] Download already in progress for', info.version);
       return;
     }
@@ -288,12 +289,14 @@ function setupAutoUpdater() {
       version: info.version,
       isDownloading: true,
     };
+    isDownloadingInSession = true;
     saveDownloadState();
     
     // Start download (electron-updater handles resume internally via HTTP range requests)
     autoUpdater.downloadUpdate().catch((err) => {
       console.error('[AutoUpdater] Download failed:', err);
       downloadState.isDownloading = false;
+      isDownloadingInSession = false;
       saveDownloadState();
     });
 
@@ -351,6 +354,7 @@ function setupAutoUpdater() {
     
     // Clear download state since we have the full update
     clearDownloadState();
+    isDownloadingInSession = false;
     
     // Reset last notified version so future updates can be notified
     lastNotifiedVersion = null;
@@ -380,6 +384,7 @@ function setupAutoUpdater() {
       version: null,
       percent: 0,
     };
+    isDownloadingInSession = false;
     sendUpdateStatus();
   });
 
