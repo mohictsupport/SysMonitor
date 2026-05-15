@@ -241,7 +241,7 @@ function setupAutoUpdater() {
   console.log('[AutoUpdater] Checking for updates...');
   updateStatus.checking = true;
   sendUpdateStatus();
-  autoUpdater.checkForUpdatesAndNotify().catch(err => {
+  autoUpdater.checkForUpdates().catch(err => {
     console.error('[AutoUpdater] Failed to check for updates:', err);
     updateStatus.checking = false;
     updateStatus.error = err.message;
@@ -250,13 +250,16 @@ function setupAutoUpdater() {
 
   // Update available
   autoUpdater.on('update-available', (info) => {
-    console.log('[AutoUpdater] Update available:', info.version);
-    
-    // Skip if already downloading this version in THIS session
-    if (isDownloadingInSession && downloadState.version === info.version) {
-      console.log('[AutoUpdater] Download already in progress for', info.version);
+    // Prevent multiple parallel download attempts in the same session
+    if (isDownloadingInSession) {
+      console.log('[AutoUpdater] Skip download trigger: already active in this session');
       return;
     }
+
+    // Immediately lock to prevent race conditions from multiple events
+    isDownloadingInSession = true;
+
+    console.log('[AutoUpdater] Update available:', info.version);
     
     // Check if we have a partial download to resume
     const hasPartialDownload = downloadState.version === info.version && downloadState.downloadedBytes > 0;
@@ -289,7 +292,6 @@ function setupAutoUpdater() {
       version: info.version,
       isDownloading: true,
     };
-    isDownloadingInSession = true;
     saveDownloadState();
     
     // Start download (electron-updater handles resume internally via HTTP range requests)

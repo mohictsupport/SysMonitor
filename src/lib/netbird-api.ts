@@ -179,14 +179,56 @@ export function generateInstallCommand(options: InstallCommandOptions): string {
 
 export type PfSenseArch = "x86_64" | "aarch64";
 
+export interface NetBirdVersions {
+  releaseTag: string;
+  netbirdVersion: string;
+  pkgVersion: string;
+}
+
+/**
+ * Fetches the latest release versions from GitHub for pfSense-netbird
+ */
+export async function fetchLatestNetBirdVersions(): Promise<NetBirdVersions> {
+  const response = await fetch("https://api.github.com/repos/netbirdio/pfsense-netbird/releases/latest");
+  if (!response.ok) {
+    throw new Error(`GitHub API error: ${response.status}`);
+  }
+  const data = await response.json();
+  const releaseTag = data.tag_name;
+
+  // Extract versions from assets
+  // Looking for netbird-X.Y.Z-x86_64.pkg and pfSense-pkg-NetBird-A.B.C-x86_64.pkg
+  let netbirdVersion = "0.69.0"; // default fallback
+  let pkgVersion = "0.2.2"; // default fallback
+
+  const netbirdAsset = data.assets.find((a: any) => 
+    a.name.startsWith("netbird-") && a.name.endsWith("-x86_64.pkg")
+  );
+  if (netbirdAsset) {
+    const match = netbirdAsset.name.match(/netbird-(.*)-x86_64\.pkg/);
+    if (match) netbirdVersion = match[1];
+  }
+
+  const pkgAsset = data.assets.find((a: any) => 
+    a.name.startsWith("pfSense-pkg-NetBird-") && a.name.endsWith("-x86_64.pkg")
+  );
+  if (pkgAsset) {
+    const match = pkgAsset.name.match(/pfSense-pkg-NetBird-(.*)-x86_64\.pkg/);
+    if (match) pkgVersion = match[1];
+  }
+
+  return { releaseTag, netbirdVersion, pkgVersion };
+}
+
 export function generatePfSenseInstallScript(
   setupKey: string,
   hostname: string,
-  arch: PfSenseArch = "x86_64"
+  arch: PfSenseArch = "x86_64",
+  versions?: NetBirdVersions
 ): string {
-  const RELEASE_TAG = "v0.1.34";
-  const NETBIRD_VERSION = "0.69.0";
-  const PKG_VERSION = "0.2.2";
+  const RELEASE_TAG = versions?.releaseTag || "v0.1.34";
+  const NETBIRD_VERSION = versions?.netbirdVersion || "0.69.0";
+  const PKG_VERSION = versions?.pkgVersion || "0.2.2";
 
   return `#!/bin/sh
 # NetBird pfSense Installation Script
@@ -214,6 +256,7 @@ echo "Check status with: netbird status"
 echo "Manage via pfSense UI: Services → NetBird"
 `;
 }
+
 
 // ===== PROVISIONING STATUS =====
 
@@ -336,6 +379,7 @@ export default {
   listGroups,
   generateInstallCommand,
   generatePfSenseInstallScript,
+  fetchLatestNetBirdVersions,
   checkProvisioningStatus,
   testConnection,
 };

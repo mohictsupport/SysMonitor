@@ -71,7 +71,7 @@ import {
 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { updateNetbirdPeer, probeHttp, type ProbeResult, listNetbirdPeers, listNetbirdGroups, createNetbirdGroup } from "@/lib/netbird.functions";
-import { createSetupKey } from "@/lib/netbird-api";
+import { createSetupKey, fetchLatestNetBirdVersions, type NetBirdVersions } from "@/lib/netbird-api";
 import { addPendingSite } from "@/lib/site-onboarding";
 import { toast } from "sonner";
 import {
@@ -1011,20 +1011,23 @@ const pfsenseInstallSteps: WizardStepConfig[] = [
     title: "Download NetBird Agent",
     description: "Download the NetBird client package for FreeBSD",
     commands: [
-      "fetch https://github.com/netbirdio/pfsense-netbird/releases/download/v0.1.34/netbird-0.69.0-{arch}.pkg",
+      "fetch https://github.com/netbirdio/pfsense-netbird/releases/download/{release_tag}/netbird-{netbird_version}-{arch}.pkg",
     ],
   },
   {
     title: "Download pfSense Package",
     description: "Download the NetBird pfSense integration package",
     commands: [
-      "fetch https://github.com/netbirdio/pfsense-netbird/releases/download/v0.1.34/pfSense-pkg-NetBird-0.2.2-{arch}.pkg",
+      "fetch https://github.com/netbirdio/pfsense-netbird/releases/download/{release_tag}/pfSense-pkg-NetBird-{pkg_version}-{arch}.pkg",
     ],
   },
   {
     title: "Install Packages",
     description: "Install both packages using pkg",
-    commands: ["pkg add -f netbird-0.69.0-{arch}.pkg", "pkg add -f pfSense-pkg-NetBird-0.2.2-{arch}.pkg"],
+    commands: [
+      "pkg add -f netbird-{netbird_version}-{arch}.pkg",
+      "pkg add -f pfSense-pkg-NetBird-{pkg_version}-{arch}.pkg",
+    ],
     verifyAction: "NetBird GUI should appear under Services → NetBird",
   },
   {
@@ -1149,6 +1152,28 @@ function AddSiteModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
   const [provisioningData, setProvisioningData] = useState<ProvisioningData | null>(null);
   const [copied, setCopied] = useState(false);
   const [hasApiKey, setHasApiKey] = useState(false);
+
+  // NetBird dynamic versions state
+  const [netbirdVersions, setNetbirdVersions] = useState<NetBirdVersions>({
+    releaseTag: "v0.1.34",
+    netbirdVersion: "0.69.0",
+    pkgVersion: "0.2.2",
+  });
+  const [isFetchingVersions, setIsFetchingVersions] = useState(false);
+
+  const handleFetchLatestVersions = async () => {
+    setIsFetchingVersions(true);
+    try {
+      const versions = await fetchLatestNetBirdVersions();
+      setNetbirdVersions(versions);
+      toast.success("Latest NetBird versions fetched from GitHub");
+    } catch (error) {
+      console.error("Failed to fetch latest versions:", error);
+      toast.error("Failed to fetch latest versions from GitHub");
+    } finally {
+      setIsFetchingVersions(false);
+    }
+  };
 
   useEffect(() => {
     const checkApiKey = async () => {
@@ -1767,10 +1792,10 @@ function AddSiteModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
                                   </p>
                                   <div className="bg-muted p-3 rounded-md font-mono text-xs space-y-1">
                                     <p className="text-phosphor">
-                                      fetch https://github.com/netbirdio/pfsense-netbird/releases/download/v0.1.34/netbird-0.69.0-{pfsenseArch}.pkg
+                                      fetch https://github.com/netbirdio/pfsense-netbird/releases/download/{netbirdVersions.releaseTag}/netbird-{netbirdVersions.netbirdVersion}-{pfsenseArch}.pkg
                                     </p>
                                     <p className="text-phosphor">
-                                      fetch https://github.com/netbirdio/pfsense-netbird/releases/download/v0.1.34/pfSense-pkg-NetBird-0.2.2-{pfsenseArch}.pkg
+                                      fetch https://github.com/netbirdio/pfsense-netbird/releases/download/{netbirdVersions.releaseTag}/pfSense-pkg-NetBird-{netbirdVersions.pkgVersion}-{pfsenseArch}.pkg
                                     </p>
                                   </div>
                                 </section>
@@ -1779,10 +1804,10 @@ function AddSiteModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
                                   <h4 className="font-semibold">Install the Packages</h4>
                                   <div className="bg-muted p-3 rounded-md font-mono text-xs space-y-1">
                                     <p className="text-phosphor">
-                                      pkg add -f netbird-0.69.0-{pfsenseArch}.pkg
+                                      pkg add -f netbird-{netbirdVersions.netbirdVersion}-{pfsenseArch}.pkg
                                     </p>
                                     <p className="text-phosphor">
-                                      pkg add -f pfSense-pkg-NetBird-0.2.2-{pfsenseArch}.pkg
+                                      pkg add -f pfSense-pkg-NetBird-{netbirdVersions.pkgVersion}-{pfsenseArch}.pkg
                                     </p>
                                   </div>
                                 </section>
@@ -1833,7 +1858,25 @@ function AddSiteModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
                       {/* Commands */}
                       {currentStep.commands && currentStep.commands.length > 0 && (
                         <div className="space-y-2">
-                          <p className="text-xs font-medium">Commands to run:</p>
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs font-medium">Commands to run:</p>
+                            {!hasCompletedWaiting && wizardStepIndex === 1 && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-6 px-2 text-[10px] gap-1 text-phosphor hover:text-phosphor hover:bg-phosphor/10 cursor-pointer"
+                                onClick={handleFetchLatestVersions}
+                                disabled={isFetchingVersions}
+                              >
+                                {isFetchingVersions ? (
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <Activity className="w-3 h-3" />
+                                )}
+                                Check for Latest Releases
+                              </Button>
+                            )}
+                          </div>
                           <div className="space-y-2">
                             {currentStep.commands.map((cmd, idx) => {
                               let displayCmd = cmd;
@@ -1841,7 +1884,16 @@ function AddSiteModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
                                 displayCmd = cmd.replace("<SETUP_KEY>", provisioningData.setupKey);
                               }
                               if (displayCmd.includes("{arch}")) {
-                                displayCmd = displayCmd.replace("{arch}", pfsenseArch);
+                                displayCmd = displayCmd.replace(/{arch}/g, pfsenseArch);
+                              }
+                              if (displayCmd.includes("{release_tag}")) {
+                                displayCmd = displayCmd.replace(/{release_tag}/g, netbirdVersions.releaseTag);
+                              }
+                              if (displayCmd.includes("{netbird_version}")) {
+                                displayCmd = displayCmd.replace(/{netbird_version}/g, netbirdVersions.netbirdVersion);
+                              }
+                              if (displayCmd.includes("{pkg_version}")) {
+                                displayCmd = displayCmd.replace(/{pkg_version}/g, netbirdVersions.pkgVersion);
                               }
                               return (
                                 <div key={idx} className="relative group">
