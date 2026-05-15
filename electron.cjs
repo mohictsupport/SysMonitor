@@ -231,6 +231,7 @@ function createWindow() {
 // Setup auto-updater
 function setupAutoUpdater() {
   // Configure auto-updater
+  autoUpdater.logger = console;
   autoUpdater.autoDownload = false; // Manual download for resume support
   autoUpdater.autoInstallOnAppQuit = true; // Install on restart
 
@@ -250,16 +251,23 @@ function setupAutoUpdater() {
 
   // Update available
   autoUpdater.on('update-available', (info) => {
-    // Prevent multiple parallel download attempts in the same session
+    console.log('[AutoUpdater] Update available event fired. Version:', info.version);
+    
+    // Check if we are already downloading or have downloaded this version
     if (isDownloadingInSession) {
       console.log('[AutoUpdater] Skip download trigger: already active in this session');
+      return;
+    }
+
+    if (updateStatus.downloaded && updateStatus.version === info.version) {
+      console.log('[AutoUpdater] Skip download trigger: already downloaded in this session');
       return;
     }
 
     // Immediately lock to prevent race conditions from multiple events
     isDownloadingInSession = true;
 
-    console.log('[AutoUpdater] Update available:', info.version);
+    console.log('[AutoUpdater] Starting/Resuming download for version:', info.version);
     
     // Check if we have a partial download to resume
     const hasPartialDownload = downloadState.version === info.version && downloadState.downloadedBytes > 0;
@@ -281,11 +289,6 @@ function setupAutoUpdater() {
       sendUpdateStatus();
     }
     
-    // Auto-start download if no partial download exists, or resume if available
-    if (hasPartialDownload) {
-      console.log('[AutoUpdater] Resuming download from', downloadState.downloadedBytes, 'bytes');
-    }
-    
     // Mark as downloading before starting
     downloadState = {
       ...downloadState,
@@ -294,26 +297,22 @@ function setupAutoUpdater() {
     };
     saveDownloadState();
     
-    // Start download (electron-updater handles resume internally via HTTP range requests)
-    autoUpdater.downloadUpdate().catch((err) => {
-      console.error('[AutoUpdater] Download failed:', err);
+    // Start download
+    autoUpdater.downloadUpdate().then(() => {
+      console.log('[AutoUpdater] downloadUpdate call resolved');
+    }).catch((err) => {
+      console.error('[AutoUpdater] downloadUpdate call failed:', err);
       downloadState.isDownloading = false;
       isDownloadingInSession = false;
+      updateStatus.error = err.message;
       saveDownloadState();
+      sendUpdateStatus();
     });
-
-    // System notification disabled - app uses its own UI notifications
-    // const notif = new Notification({
-    //   title: 'Update Available',
-    //   body: `Version ${info.version} is downloading. Restart to install.`,
-    //   silent: true,
-    // });
-    // notif.show();
   });
 
   // Update not available
-  autoUpdater.on('update-not-available', () => {
-    console.log('[AutoUpdater] No updates available');
+  autoUpdater.on('update-not-available', (info) => {
+    console.log('[AutoUpdater] Update not available:', info?.version);
     updateStatus = {
       checking: false,
       available: false,
@@ -326,25 +325,31 @@ function setupAutoUpdater() {
   });
 
   // Download progress
+  let lastProgressUpdate = 0;
   autoUpdater.on('download-progress', (progress) => {
-    console.log(`[AutoUpdater] Download progress: ${Math.round(progress.percent)}%`);
+    const now = Date.now();
     updateStatus.percent = Math.round(progress.percent);
     
-    // Save download state for resume capability
-    downloadState = {
-      ...downloadState,
-      downloadedBytes: progress.transferred,
-      totalBytes: progress.total,
-      isDownloading: true,
-    };
-    saveDownloadState();
-    
+    // Update in-memory state for UI
     sendUpdateStatus();
+    
+    // Throttle disk IO to once every 2 seconds to avoid performance issues
+    if (now - lastProgressUpdate > 2000) {
+      console.log(`[AutoUpdater] Progress: ${updateStatus.percent}% (${progress.transferred}/${progress.total})`);
+      downloadState = {
+        ...downloadState,
+        downloadedBytes: progress.transferred,
+        totalBytes: progress.total,
+        isDownloading: true,
+      };
+      saveDownloadState();
+      lastProgressUpdate = now;
+    }
   });
 
   // Update downloaded
   autoUpdater.on('update-downloaded', (info) => {
-    console.log('[AutoUpdater] Update downloaded:', info.version);
+    console.log('[AutoUpdater] Update downloaded successfully:', info.version);
     updateStatus = {
       checking: false,
       available: true,
@@ -358,42 +363,32 @@ function setupAutoUpdater() {
     clearDownloadState();
     isDownloadingInSession = false;
     
-    // Reset last notified version so future updates can be notified
-    lastNotifiedVersion = null;
+    // Keep lastNotifiedVersion so we don't spam if another check happens
+    // but allow the UI to show 'Install'
     
     sendUpdateStatus();
-
-    // System notification disabled - app uses its own UI notifications
-    // const notif = new Notification({
-    //   title: 'Update Ready',
-    //   body: `Version ${info.version} downloaded. Restart to apply update.`,
-    //   silent: false,
-    // });
-    // notif.on('click', () => {
-    //   autoUpdater.quitAndInstall();
-    // });
-    // notif.show();
   });
 
   // Error
   autoUpdater.on('error', (err) => {
-    console.error('[AutoUpdater] Error:', err);
-    updateStatus = {
-      checking: false,
-      available: false,
-      downloaded: false,
-      error: err.message,
-      version: null,
-      percent: 0,
-    };
-    isDownloadingInSession = false;
-    sendUpdateStatus();
+    console.error('[AutoUpdater] Global error event:', err);
+    
+    // Don't reset everything if it was already downloaded (sometimes verification errors happen but file is fine)
+    if (!updateStatus.downloaded) {
+      updateStatus = {
+        ...updateStatus,
+        checking: false,
+        error: err.message,
+      };
+      isDownloadingInSession = false;
+      sendUpdateStatus();
+    }
   });
 
   // Periodic check every 30 minutes
   setInterval(() => {
     // Skip check if update already available or downloaded
-    if (!updateStatus.available && !updateStatus.downloaded) {
+    if (!updateStatus.available && !updateStatus.downloaded && !isDownloadingInSession) {
       console.log('[AutoUpdater] Periodic update check...');
       autoUpdater.checkForUpdates().catch(() => {});
     }

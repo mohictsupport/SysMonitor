@@ -53,6 +53,29 @@ function flatHistory(): Site["history"] {
   }));
 }
 
+/**
+ * Heuristic to identify NetBird internal service peers (SSH/RDP connections)
+ */
+export const isServicePeer = (site: { name: string; hostname?: string; tags?: string[] }) => {
+  const name = (site.name || "").toLowerCase();
+  const hostname = (site.hostname || "").toLowerCase();
+  const tags = (site.tags || []).map(t => t.toLowerCase());
+  
+  // Specific patterns for NetBird service peers (RDP/SSH/RDT/Browser Clients)
+  // These often have names exactly matching the service or belong to specific groups
+  const servicePatterns = ['rdp', 'ssh', 'rdt', 'browser-client', 'browser', 'interactive', 'app.netbird.io'];
+  
+  return servicePatterns.some(p => 
+    name === p || 
+    hostname === p || 
+    tags.includes(p) ||
+    name.includes(p) || 
+    hostname.includes(p) ||
+    name.startsWith("chrome-") ||
+    hostname.startsWith("chrome-")
+  );
+};
+
 // Load cached sites from localStorage
 function loadCachedSites(): { sites: Site[]; timestamp: number } | null {
   if (typeof window === "undefined") return null;
@@ -387,9 +410,10 @@ export function useNetbirdSites() {
     const peers = q.data?.peers ?? [];
     if (peers.length === 0) return [];
     
-    // Load history once for the whole batch
     const history = loadHistory();
-    return peers.map((peer) => peerToSite(peer, history));
+    return peers
+      .map((peer) => peerToSite(peer, history))
+      .filter((site) => !isServicePeer(site));
   }, [q.data?.peers]);
 
   // If the query has data but also an error (from cache fallback), expose the error
@@ -452,7 +476,8 @@ export function useNetbirdSitesRealtime() {
             ...data
           } as Site);
         });
-        setSites(sitesData);
+        // Filter out service peers from realtime stream too
+        setSites(sitesData.filter(site => !isServicePeer(site)));
         setIsLoading(false);
         setIsRealtime(true);
       },

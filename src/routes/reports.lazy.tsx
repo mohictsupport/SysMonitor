@@ -115,21 +115,23 @@ function ReportsPage() {
   // Fetch daily stats from Firestore (real-time via onSnapshot)
   const { stats: dailyStats, loading, error } = useDailyStats(startDate, endDate);
 
-  // Build set of device names that are user devices (to exclude from reports)
-  const deviceNamesSet = useMemo(() => {
-    const deviceNames = new Set<string>();
+  // Build set of names for infrastructure sites only (excludes devices and service peers)
+  const infraSiteNames = useMemo(() => {
+    const names = new Set<string>();
     sites.forEach(site => {
-      if (isDeviceOS(site.os)) {
-        deviceNames.add(site.name);
+      // isDeviceOS filters out laptops/phones
+      // isServicePeer was already applied in useNetbirdSites hook
+      if (!isDeviceOS(site.os)) {
+        names.add(site.name);
       }
     });
-    return deviceNames;
+    return names;
   }, [sites]);
 
-  // Filter daily stats to exclude devices (only infrastructure sites)
+  // Filter daily stats to only include infrastructure sites
   const filteredDailyStats = useMemo(() => {
-    return dailyStats.filter(stat => !deviceNamesSet.has(stat.device_name));
-  }, [dailyStats, deviceNamesSet]);
+    return dailyStats.filter(stat => infraSiteNames.has(stat.device_name));
+  }, [dailyStats, infraSiteNames]);
 
   // Aggregate data based on report type
   const reportData = useMemo((): SiteDetails[] => {
