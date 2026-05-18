@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const https = require('https');
+const { exec } = require('child_process');
 
 // Keep a global reference of the window object
 let mainWindow;
@@ -36,63 +37,6 @@ function sendUpdateStatus() {
 const CONFIG_DIR = path.join(os.homedir(), '.sysmonitor');
 const SETTINGS_FILE = path.join(CONFIG_DIR, 'settings.json');
 const API_KEY_FILE = path.join(CONFIG_DIR, 'netbird-api-key.txt');
-const DOWNLOAD_STATE_FILE = path.join(CONFIG_DIR, 'download-state.json');
-
-// Download state for resume capability
-let downloadState = {
-  version: null,
-  downloadedBytes: 0,
-  totalBytes: 0,
-  isDownloading: false,
-  lastError: null,
-  downloadUrl: null,
-  partialFile: null,
-};
-
-// Save download state to disk
-function saveDownloadState() {
-  try {
-    if (!fs.existsSync(CONFIG_DIR)) {
-      fs.mkdirSync(CONFIG_DIR, { recursive: true });
-    }
-    fs.writeFileSync(DOWNLOAD_STATE_FILE, JSON.stringify(downloadState, null, 2));
-  } catch (err) {
-    console.error('[DownloadState] Failed to save:', err);
-  }
-}
-
-// Load download state from disk
-function loadDownloadState() {
-  try {
-    if (fs.existsSync(DOWNLOAD_STATE_FILE)) {
-      const data = fs.readFileSync(DOWNLOAD_STATE_FILE, 'utf8');
-      downloadState = { ...downloadState, ...JSON.parse(data) };
-      console.log('[DownloadState] Loaded:', downloadState);
-    }
-  } catch (err) {
-    console.error('[DownloadState] Failed to load:', err);
-  }
-}
-
-// Clear download state
-function clearDownloadState() {
-  downloadState = {
-    version: null,
-    downloadedBytes: 0,
-    totalBytes: 0,
-    isDownloading: false,
-    lastError: null,
-    downloadUrl: null,
-    partialFile: null,
-  };
-  try {
-    if (fs.existsSync(DOWNLOAD_STATE_FILE)) {
-      fs.unlinkSync(DOWNLOAD_STATE_FILE);
-    }
-  } catch (err) {
-    console.error('[DownloadState] Failed to clear:', err);
-  }
-}
 
 // Ensure config directory exists
 if (!fs.existsSync(CONFIG_DIR)) {
@@ -232,11 +176,8 @@ function createWindow() {
 function setupAutoUpdater() {
   // Configure auto-updater
   autoUpdater.logger = console;
-  autoUpdater.autoDownload = false; // Manual download for resume support
+  autoUpdater.autoDownload = false; // Manual download
   autoUpdater.autoInstallOnAppQuit = true; // Install on restart
-
-  // Load previous download state
-  loadDownloadState();
 
   // Check for updates on startup
   console.log('[AutoUpdater] Checking for updates...');
@@ -267,10 +208,8 @@ function setupAutoUpdater() {
     // Immediately lock to prevent race conditions from multiple events
     isDownloadingInSession = true;
 
-    console.log('[AutoUpdater] Starting/Resuming download for version:', info.version);
+    console.log('[AutoUpdater] Starting fresh download for version:', info.version);
     
-    // Check if we have a partial download to resume
-    const hasPartialDownload = downloadState.version === info.version && downloadState.downloadedBytes > 0;
     const alreadyNotified = lastNotifiedVersion === info.version;
     
     updateStatus = {
@@ -279,8 +218,7 @@ function setupAutoUpdater() {
       downloaded: false,
       error: null,
       version: info.version,
-      percent: hasPartialDownload ? Math.round((downloadState.downloadedBytes / downloadState.totalBytes) * 100) : 0,
-      canResume: hasPartialDownload,
+      percent: 0,
     };
     
     // Only send status update if we haven't already notified about this version
@@ -289,23 +227,13 @@ function setupAutoUpdater() {
       sendUpdateStatus();
     }
     
-    // Mark as downloading before starting
-    downloadState = {
-      ...downloadState,
-      version: info.version,
-      isDownloading: true,
-    };
-    saveDownloadState();
-    
     // Start download
     autoUpdater.downloadUpdate().then(() => {
       console.log('[AutoUpdater] downloadUpdate call resolved');
     }).catch((err) => {
       console.error('[AutoUpdater] downloadUpdate call failed:', err);
-      downloadState.isDownloading = false;
       isDownloadingInSession = false;
       updateStatus.error = err.message;
-      saveDownloadState();
       sendUpdateStatus();
     });
   });
@@ -333,16 +261,9 @@ function setupAutoUpdater() {
     // Update in-memory state for UI
     sendUpdateStatus();
     
-    // Throttle disk IO to once every 2 seconds to avoid performance issues
+    // Throttle logging to once every 2 seconds to avoid performance issues
     if (now - lastProgressUpdate > 2000) {
       console.log(`[AutoUpdater] Progress: ${updateStatus.percent}% (${progress.transferred}/${progress.total})`);
-      downloadState = {
-        ...downloadState,
-        downloadedBytes: progress.transferred,
-        totalBytes: progress.total,
-        isDownloading: true,
-      };
-      saveDownloadState();
       lastProgressUpdate = now;
     }
   });
@@ -359,8 +280,6 @@ function setupAutoUpdater() {
       percent: 100,
     };
     
-    // Clear download state since we have the full update
-    clearDownloadState();
     isDownloadingInSession = false;
     
     // Keep lastNotifiedVersion so we don't spam if another check happens
@@ -678,6 +597,99 @@ ipcMain.handle('focus-window', async () => {
     mainWindow.show();
   }
   return { success: true };
+});
+
+// ICMP Ping check
+ipcMain.handle('ping-check', async (event, { host, count = 2, timeoutMs = 2000 }) => {
+  return new Promise((resolve) => {
+    const isWindows = process.platform === 'win32';
+    // On Windows, -n is count, -w is timeout in ms
+    // On Linux/Mac, -c is count, -W is timeout in seconds
+    const cmd = isWindows 
+      ? `ping -n ${count} -w ${timeoutMs} ${host}`
+      : `ping -c ${count} -W ${Math.max(1, Math.round(timeoutMs/1000))} ${host}`;
+
+    exec(cmd, (error, stdout, stderr) => {
+      const output = stdout ? stdout.toString() : '';
+      
+      // Parse packet loss
+      const lossMatch = output.match(/(\d+)%\s+loss/i);
+      const packetLoss = lossMatch ? parseInt(lossMatch[1], 10) : (error ? 100 : 0);
+
+      // Parse average latency
+      let avgLatency = 0;
+      if (isWindows) {
+        const avgMatch = output.match(/Average = (\d+)ms/i);
+        if (avgMatch) {
+          avgLatency = parseInt(avgMatch[1], 10);
+        } else {
+          // Fallback: parse individual reply times
+          const times = [...output.matchAll(/time[=<](\d+)ms/gi)].map(m => parseInt(m[1], 10));
+          if (times.length > 0) {
+            avgLatency = Math.round(times.reduce((a, b) => a + b, 0) / times.length);
+          } else if (output.includes('time<1ms')) {
+            avgLatency = 0; // Very low latency
+          }
+        }
+      } else {
+        const avgMatch = output.match(/min\/avg\/max\/mdev = [\d.]+\/([\d.]+)\//i);
+        if (avgMatch) {
+          avgLatency = Math.round(parseFloat(avgMatch[1]));
+        }
+      }
+
+      const ok = !error && packetLoss < 100;
+      
+      resolve({
+        ok,
+        latencyMs: avgLatency,
+        packetLoss,
+        detail: ok 
+          ? `Ping success · ${avgLatency}ms · ${packetLoss}% loss` 
+          : `Ping failed · ${packetLoss}% loss`
+      });
+    });
+  });
+});
+
+// Ping batch check
+ipcMain.handle('ping-batch-check', async (event, { sites, count = 2, timeoutMs = 2000, concurrency = 15 }) => {
+  const limit = pLimit(concurrency);
+  
+  const results = await Promise.all(
+    sites.map((site) =>
+      limit(async () => {
+        const result = await new Promise((resolve) => {
+          const isWindows = process.platform === 'win32';
+          const cmd = isWindows 
+            ? `ping -n ${count} -w ${timeoutMs} ${site.netbirdIp || site.hostname}`
+            : `ping -c ${count} -W ${Math.max(1, Math.round(timeoutMs/1000))} ${site.netbirdIp || site.hostname}`;
+
+          exec(cmd, (error, stdout) => {
+            const output = stdout ? stdout.toString() : '';
+            const lossMatch = output.match(/(\d+)%\s+loss/i);
+            const packetLoss = lossMatch ? parseInt(lossMatch[1], 10) : (error ? 100 : 0);
+            
+            let avgLatency = 0;
+            if (isWindows) {
+              const avgMatch = output.match(/Average = (\d+)ms/i);
+              if (avgMatch) avgLatency = parseInt(avgMatch[1], 10);
+              else if (output.includes('time<1ms')) avgLatency = 0;
+            } else {
+              const avgMatch = output.match(/min\/avg\/max\/mdev = [\d.]+\/([\d.]+)\//i);
+              if (avgMatch) avgLatency = Math.round(parseFloat(avgMatch[1]));
+            }
+
+            const ok = !error && packetLoss < 100;
+            resolve({ id: site.id, ok, latencyMs: avgLatency, packetLoss });
+          });
+        });
+        return result;
+      })
+    )
+  );
+
+  return results;
 });
 
 // Batch health check (TCP port checks using Node.js net module)

@@ -70,8 +70,8 @@ import {
   MapPin,
 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { updateNetbirdPeer, probeHttp, type ProbeResult, listNetbirdPeers, listNetbirdGroups, createNetbirdGroup } from "@/lib/netbird.functions";
-import { createSetupKey, fetchLatestNetBirdVersions, type NetBirdVersions } from "@/lib/netbird-api";
+import { updateNetbirdPeer, deleteNetbirdPeer, probeHttp, type ProbeResult, listNetbirdPeers, listNetbirdGroups, createNetbirdGroup } from "@/lib/netbird.functions";
+import { createSetupKey, fetchLatestNetBirdVersions, type NetBirdVersions, type SetupKey } from "@/lib/netbird-api";
 import { addPendingSite } from "@/lib/site-onboarding";
 import { toast } from "sonner";
 import {
@@ -524,13 +524,29 @@ function SitesPage() {
             setIsDeleteModalOpen(false);
             setSiteToDelete(null);
           }}
-          onConfirm={() => {
+          onConfirm={async (alsoDeleteNetbird) => {
             if (siteToDelete) {
+              if (alsoDeleteNetbird) {
+                const deletingToast = toast.loading(`Deleting peer "${siteToDelete.name}" from NetBird...`);
+                try {
+                  const res = await deleteNetbirdPeer(siteToDelete.id);
+                  if (!res.success) {
+                    toast.error(`NetBird Peer Deletion Alert: ${res.error || "Failed to delete"}`);
+                  } else {
+                    toast.success(`Peer "${siteToDelete.name}" successfully deleted from NetBird Cloud.`);
+                  }
+                } catch (err) {
+                  console.error(err);
+                  toast.error("Failed to delete peer from NetBird");
+                } finally {
+                  toast.dismiss(deletingToast);
+                }
+              }
               // Remove from local storage
               removeSite(siteToDelete.id);
               // Refetch NetBird data
               refetch();
-              toast.success(`Site "${siteToDelete.name}" deleted successfully`);
+              toast.success(`Site "${siteToDelete.name}" removed from local inventory`);
             }
             setIsDeleteModalOpen(false);
             setSiteToDelete(null);
@@ -551,12 +567,29 @@ function DeleteConfirmModal({
   site: Site | null;
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: (alsoDeleteNetbird: boolean) => Promise<void> | void;
 }) {
+  const [alsoDeleteNetbird, setAlsoDeleteNetbird] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Reset checkbox when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setAlsoDeleteNetbird(true);
+      setIsDeleting(false);
+    }
+  }, [isOpen]);
+
   if (!site) return null;
 
+  const handleConfirm = async () => {
+    setIsDeleting(true);
+    await onConfirm(alsoDeleteNetbird);
+    setIsDeleting(false);
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && !isDeleting && onClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="sr-only">Confirm Delete</DialogTitle>
@@ -566,23 +599,54 @@ function DeleteConfirmModal({
             <AlertTriangle className="w-6 h-6 text-red-500" />
           </div>
           <h3 className="font-medium text-foreground mb-2">Delete Site?</h3>
-          <p className="text-sm text-dim mb-6">
+          <p className="text-sm text-dim mb-4">
             Are you sure you want to delete <span className="text-foreground font-medium">{site.name}</span>? This action cannot be undone and will remove all monitoring data for this site.
           </p>
+
+          <div
+            className="flex items-start gap-2 mb-6 bg-void/40 p-3 rounded-lg border border-border/50 text-left w-full cursor-pointer hover:bg-void/60 transition-colors"
+            onClick={() => !isDeleting && setAlsoDeleteNetbird(!alsoDeleteNetbird)}
+          >
+            <input
+              type="checkbox"
+              id="also-delete-netbird"
+              checked={alsoDeleteNetbird}
+              onChange={(e) => setAlsoDeleteNetbird(e.target.checked)}
+              className="w-4 h-4 accent-phosphor cursor-pointer mt-0.5"
+              disabled={isDeleting}
+              onClick={(e) => e.stopPropagation()}
+            />
+            <label htmlFor="also-delete-netbird" className="text-xs text-foreground cursor-pointer select-none">
+              Also delete peer from NetBird Cloud (Recommended)
+              <span className="block text-[10px] text-dim mt-0.5">
+                Deletes the WireGuard credentials from NetBird to prevent duplicate ghosts & connection freezes.
+              </span>
+            </label>
+          </div>
+
           <div className="flex items-center gap-3 w-full">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 border border-border bg-panel px-4 py-2 font-mono text-[11px] uppercase tracking-widest text-dim transition-colors hover:text-foreground"
+              className="flex-1 border border-border bg-panel px-4 py-2 font-mono text-[11px] uppercase tracking-widest text-dim transition-colors hover:text-foreground cursor-pointer"
+              disabled={isDeleting}
             >
               Cancel
             </button>
             <button
               type="button"
-              onClick={onConfirm}
-              className="flex-1 bg-red-500 hover:bg-red-600 px-4 py-2 font-mono text-[11px] uppercase tracking-widest text-white transition-colors"
+              onClick={handleConfirm}
+              className="flex-1 bg-red-500 hover:bg-red-600 px-4 py-2 font-mono text-[11px] uppercase tracking-widest text-white transition-colors cursor-pointer flex items-center justify-center gap-2"
+              disabled={isDeleting}
             >
-              Delete
+              {isDeleting ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
             </button>
           </div>
         </div>
@@ -607,6 +671,10 @@ export function SiteDetailModal({
   const [probeUrl, setProbeUrl] = useState("");
   const [probeResult, setProbeResult] = useState<ProbeResult | null>(null);
 
+  // Deletion state
+  const [isConfirmPeerDeleteOpen, setIsConfirmPeerDeleteOpen] = useState(false);
+  const [isDeletingPeer, setIsDeletingPeer] = useState(false);
+
   // Access code protection for opening site
   const [isAccessModalOpen, setIsAccessModalOpen] = useState(false);
   const [accessError, setAccessError] = useState<string | null>(null);
@@ -619,6 +687,8 @@ export function SiteDetailModal({
     setIsEditing(false);
     setProbeUrl("");
     setProbeResult(null);
+    setIsConfirmPeerDeleteOpen(false);
+    setIsDeletingPeer(false);
   }, [site]);
 
   const updateMutation = useMutation({
@@ -866,6 +936,24 @@ export function SiteDetailModal({
                 ))}
               </div>
             </div>
+
+            <div className="border border-red-500/20 bg-red-500/5 p-4 rounded-lg">
+              <h3 className="font-mono text-[10px] font-bold uppercase tracking-widest text-red-500 flex items-center gap-1.5">
+                <AlertTriangle className="w-3.5 h-3.5" />
+                Danger Zone
+              </h3>
+              <p className="mt-2 text-[10px] text-dim leading-relaxed">
+                Permanently delete this peer from the NetBird network. This stops connection status freezes but severs the connection.
+              </p>
+              <button
+                type="button"
+                onClick={() => setIsConfirmPeerDeleteOpen(true)}
+                className="mt-3 w-full border border-red-500/40 bg-red-500/10 px-3 py-2 font-mono text-[10px] uppercase tracking-widest text-red-500 hover:bg-red-500/20 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Delete Peer
+              </button>
+            </div>
           </aside>
         </div>
 
@@ -893,6 +981,69 @@ export function SiteDetailModal({
           title="Open Site - Access Required"
           description="Please enter the access code to open this site."
         />
+
+        {/* Deletion confirmation dialog */}
+        <Dialog open={isConfirmPeerDeleteOpen} onOpenChange={(open) => !open && !isDeletingPeer && setIsConfirmPeerDeleteOpen(false)}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="sr-only">Confirm NetBird Peer Deletion</DialogTitle>
+            </DialogHeader>
+            <div className="flex flex-col items-center text-center pt-4 pb-2">
+              <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center mb-4">
+                <AlertTriangle className="w-6 h-6 text-red-500" />
+              </div>
+              <h3 className="font-medium text-foreground mb-2">Delete NetBird Peer?</h3>
+              <p className="text-sm text-dim mb-6">
+                Are you sure you want to permanently delete the peer <strong className="text-foreground">{site.name}</strong> from NetBird Cloud? This will immediately disconnect the device and cannot be undone.
+              </p>
+              <div className="flex items-center gap-3 w-full">
+                <button
+                  type="button"
+                  onClick={() => setIsConfirmPeerDeleteOpen(false)}
+                  className="flex-1 border border-border bg-panel px-4 py-2 font-mono text-[11px] uppercase tracking-widest text-dim transition-colors hover:text-foreground cursor-pointer"
+                  disabled={isDeletingPeer}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setIsDeletingPeer(true);
+                    const deletingToast = toast.loading(`Deleting peer "${site.name}" from NetBird...`);
+                    try {
+                      const res = await deleteNetbirdPeer(site.id);
+                      if (res.success) {
+                        toast.success(`Peer "${site.name}" successfully deleted from NetBird Cloud.`);
+                        queryClient.invalidateQueries({ queryKey: ["netbird", "peers"] });
+                        setIsConfirmPeerDeleteOpen(false);
+                        onClose();
+                      } else {
+                        toast.error(`Deletion failed: ${res.error || "Unknown error"}`);
+                      }
+                    } catch (err) {
+                      console.error(err);
+                      toast.error("Failed to delete peer from NetBird");
+                    } finally {
+                      toast.dismiss(deletingToast);
+                      setIsDeletingPeer(false);
+                    }
+                  }}
+                  className="flex-1 bg-red-500 hover:bg-red-600 px-4 py-2 font-mono text-[11px] uppercase tracking-widest text-white transition-colors cursor-pointer flex items-center justify-center gap-2"
+                  disabled={isDeletingPeer}
+                >
+                  {isDeletingPeer ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    "Delete Peer"
+                  )}
+                </button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </DialogContent>
     </Dialog>
   );
@@ -976,10 +1127,11 @@ interface ProvisioningData {
   location: string;
   setupKey: string;
   hostname: string;
+  setupKeyId?: string;
 }
 
 type DeviceType = "pfsense" | "linux" | "windows" | "docker" | "router" | "generic";
-type WizardStep = "info" | "generating" | "wizard" | "command" | "waiting";
+type WizardStep = "info" | "generating" | "duplicate_warning" | "wizard" | "command" | "waiting";
 
 interface WizardStepConfig {
   title: string;
@@ -1124,6 +1276,11 @@ const devices: DeviceConfig[] = [
 ];
 
 function AddSiteModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  const { sites: allNetbirdSites } = useNetbirdSites();
+  const queryClient = useQueryClient();
+  const [existingPeerFound, setExistingPeerFound] = useState<any | null>(null);
+  const [isDeletingDuplicate, setIsDeletingDuplicate] = useState(false);
+
   const [step, setStep] = useState<WizardStep>("info");
   const [wizardStepIndex, setWizardStepIndex] = useState(0);
   const [isDeviceConnected, setIsDeviceConnected] = useState(false);
@@ -1134,6 +1291,112 @@ function AddSiteModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
   const [location, setLocation] = useState("");
   const [facilitySearch, setFacilitySearch] = useState("");
   const [facilityOpen, setFacilityOpen] = useState(false);
+
+  const proceedWithProvisioning = async () => {
+    setStep("generating");
+
+    try {
+      const trimmedSiteName = siteName.trim();
+      const trimmedLocation = location.trim();
+      const hostname = trimmedSiteName.toLowerCase().replace(/\s+/g, "-");
+
+      let groupIds: string[] = [];
+
+      // 1. Try to find/create NetBird group for the Location (Region) if specified
+      if (trimmedLocation) {
+        try {
+          const groupsResult = await listNetbirdGroups();
+          let regionGroup = groupsResult.groups?.find(
+            (g: any) => g.name.toLowerCase() === trimmedLocation.toLowerCase(),
+          );
+          let groupId = regionGroup?.id;
+
+          if (!groupId) {
+            const createResult = await createNetbirdGroup({ name: trimmedLocation });
+            if (createResult.success && createResult.groupId) {
+              groupId = createResult.groupId;
+              toast.success(`Created region group "${trimmedLocation}"`);
+            }
+          }
+
+          if (groupId) {
+            groupIds.push(groupId);
+          }
+        } catch (err) {
+          console.error("Failed to pre-create NetBird group during provisioning:", err);
+        }
+      }
+
+      // 2. Create setup key with auto_groups configuration
+      const setupKeyResponse = await createSetupKey({
+        name: trimmedSiteName,
+        type: "one-off",
+        expires_in: 3600,
+        auto_groups: groupIds.length > 0 ? groupIds : undefined,
+      });
+
+      const data: ProvisioningData = {
+        siteName: trimmedSiteName,
+        location: trimmedLocation,
+        setupKey: setupKeyResponse.key,
+        setupKeyId: setupKeyResponse.id,
+        hostname,
+      };
+
+      // Store provisioning request
+      addPendingSite({
+        name: data.siteName,
+        location: data.location,
+        setupKey: data.setupKey,
+        setupKeyId: data.setupKeyId,
+        status: "provisioning",
+      });
+
+      setProvisioningData(data);
+
+      // Check if device uses wizard
+      const device = devices.find((d) => d.id === deviceType);
+      if (device?.useWizard && device?.wizardSteps) {
+        setStep("wizard");
+        setWizardStepIndex(0);
+      } else {
+        setStep("command");
+      }
+
+      toast.success(`Setup key generated for ${data.siteName}`);
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to generate setup key");
+      setStep("info");
+    }
+  };
+
+  const handleConfirmReplace = async () => {
+    if (!existingPeerFound) return;
+    setIsDeletingDuplicate(true);
+    try {
+      const res = await deleteNetbirdPeer(existingPeerFound.id);
+      if (!res.success) {
+        toast.error(res.error || "Failed to delete the existing duplicate peer.");
+        setIsDeletingDuplicate(false);
+        return;
+      }
+      toast.success(`Existing peer "${existingPeerFound.name}" deleted from NetBird.`);
+
+      // Invalidate queries so lists and dashboard sync properly
+      queryClient.invalidateQueries({ queryKey: ["netbird-peers"] });
+      queryClient.invalidateQueries({ queryKey: ["netbird-sites"] });
+
+      setExistingPeerFound(null);
+      setIsDeletingDuplicate(false);
+
+      // Proceed to normal provisioning flow
+      await proceedWithProvisioning();
+    } catch (err) {
+      toast.error("An error occurred during peer replacement");
+      setIsDeletingDuplicate(false);
+    }
+  };
 
   // Memoize filtered facilities for better performance
   const filteredFacilities = useMemo(() => {
@@ -1251,11 +1514,13 @@ function AddSiteModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
         const peers = result.peers;
         const hostname = provisioningData.hostname;
 
-        // Look for peer with matching hostname or name
+        // Look for peer with matching setupKeyId or matching hostname / name
         const connectedPeer = peers.find(
           (peer: any) =>
+            (provisioningData.setupKeyId && peer.setupKeyId && peer.setupKeyId === provisioningData.setupKeyId) ||
             peer.name === hostname ||
             peer.hostname === hostname ||
+            peer.name.toLowerCase() === hostname.toLowerCase() ||
             peer.name.includes(siteName) ||
             (peer.dns_label && peer.dns_label.includes(hostname)),
         );
@@ -1264,13 +1529,17 @@ function AddSiteModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
           setIsDeviceConnected(true);
           toast.success(`${siteName} has connected successfully!`);
 
-          // Auto-create region group and assign peer
+          // Auto-create/retrieve region group and assign/rename peer in NetBird
           const region = provisioningData?.location;
+          let groupsToAssign: string[] = [];
+
           if (region) {
             try {
               // Check if group exists
               const groupsResult = await listNetbirdGroups();
-              let regionGroup = groupsResult.groups?.find((g: any) => g.name === region);
+              let regionGroup = groupsResult.groups?.find(
+                (g: any) => g.name.toLowerCase() === region.toLowerCase(),
+              );
               let groupId = regionGroup?.id;
 
               // Create group if it doesn't exist
@@ -1282,19 +1551,31 @@ function AddSiteModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
                 }
               }
 
-              // Assign peer to region group
               if (groupId) {
-                const updateResult = await updateNetbirdPeer({
-                  peerId: connectedPeer.id,
-                  groups: [groupId],
-                });
-                if (updateResult.success) {
-                  toast.success(`Assigned to ${region} group`);
-                }
+                groupsToAssign.push(groupId);
               }
             } catch (err) {
-              console.error("Failed to auto-assign region group:", err);
+              console.error("Failed to auto-assign region group on connect:", err);
             }
+          }
+
+          // Rename the peer to clean friendly name AND assign group
+          try {
+            const updatePayload: any = {
+              peerId: connectedPeer.id,
+              name: siteName,
+            };
+            if (groupsToAssign.length > 0) {
+              updatePayload.groups = groupsToAssign;
+            }
+            const updateResult = await updateNetbirdPeer(updatePayload);
+            if (updateResult.success) {
+              toast.success(`Configured NetBird peer (Name: "${siteName}"${region ? `, Group: "${region}"` : ""})`);
+            } else {
+              console.error("Failed to update peer in NetBird:", updateResult.error);
+            }
+          } catch (err) {
+            console.error("Error updating peer in NetBird:", err);
           }
 
           // Continue to config steps or close after delay
@@ -1383,48 +1664,28 @@ function AddSiteModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
       return;
     }
 
-    setStep("generating");
+    // Check for existing duplicate peer (by siteName or hostname)
+    const targetHostname = siteName.trim().toLowerCase().replace(/\s+/g, "-");
+    const duplicate = allNetbirdSites.find(
+      (p) =>
+        p.name.toLowerCase() === siteName.trim().toLowerCase() ||
+        p.hostname?.toLowerCase() === targetHostname
+    );
 
-    try {
-      const setupKey = await createSetupKey(siteName.trim());
-
-      const hostname = siteName.trim().toLowerCase().replace(/\s+/g, "-");
-
-      const data: ProvisioningData = {
-        siteName: siteName.trim(),
-        location: location.trim(),
-        setupKey,
-        hostname,
-      };
-
-      // Store provisioning request
-      addPendingSite({
-        name: data.siteName,
-        location: data.location,
-        setupKey: data.setupKey,
-        status: "provisioning",
-      });
-
-      setProvisioningData(data);
-
-      // Check if device uses wizard
-      const device = devices.find((d) => d.id === deviceType);
-      if (device?.useWizard && device?.wizardSteps) {
-        setStep("wizard");
-        setWizardStepIndex(0);
-      } else {
-        setStep("command");
-      }
-
-      toast.success(`Setup key generated for ${data.siteName}`);
-    } catch (error) {
-      toast.error("Failed to generate setup key");
-      setStep("info");
+    if (duplicate) {
+      setExistingPeerFound(duplicate);
+      setStep("duplicate_warning");
+      return;
     }
+
+    await proceedWithProvisioning();
   };
 
   const handleBack = () => {
-    if (step === "wizard" && wizardStepIndex > 0) {
+    if (step === "duplicate_warning") {
+      setStep("info");
+      setExistingPeerFound(null);
+    } else if (step === "wizard" && wizardStepIndex > 0) {
       setWizardStepIndex(wizardStepIndex - 1);
     } else if (step === "wizard" && !hasCompletedWaiting) {
       setStep("info");
@@ -1505,6 +1766,7 @@ function AddSiteModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
           <div className="h-6 w-px bg-border" />
           <h1 className="text-lg font-semibold">
             {step === "info" && "Add New Site"}
+            {step === "duplicate_warning" && "Warning: Duplicate Peer Detected"}
             {step === "generating" && "Generating Setup Key..."}
             {step === "wizard" && "Installation Wizard"}
             {step === "command" && "Installation Commands"}
@@ -1667,6 +1929,86 @@ function AddSiteModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
               <p className="text-sm text-muted-foreground mt-2">
                 Creating NetBird setup key for {siteName}
               </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {step === "duplicate_warning" && existingPeerFound && (
+          <Card className="border-alert bg-alert/5">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-xl text-alert font-bold">
+                <AlertTriangle className="w-6 h-6 animate-pulse" />
+                Warning: Duplicate Peer Detected
+              </CardTitle>
+              <CardDescription className="text-sm">
+                A device named <strong className="font-mono text-foreground">{existingPeerFound.name}</strong> (hostname: <code className="text-foreground">{existingPeerFound.hostname || "—"}</code>) already exists in your NetBird network.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="bg-void/50 p-4 rounded-lg border border-border space-y-3 text-xs md:text-sm">
+                <p>
+                  Provisioning a site with the same identity will cause status freezes, connectivity conflicts, and duplicate ghost entries on the NetBird dashboard.
+                </p>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-2 border-t border-border/50 text-[11px] font-mono">
+                  <div>
+                    <span className="text-dim block">Peer ID</span>
+                    <span className="text-foreground select-all">{existingPeerFound.id}</span>
+                  </div>
+                  <div>
+                    <span className="text-dim block">NetBird IP</span>
+                    <span className="text-foreground">{existingPeerFound.ipv4 || "—"}</span>
+                  </div>
+                  <div>
+                    <span className="text-dim block">Status</span>
+                    <span className={existingPeerFound.netbirdConnected ? "text-phosphor font-bold" : "text-dim"}>
+                      {existingPeerFound.netbirdConnected ? "Connected" : "Offline"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-amber-500/10 border border-amber-500/25 p-4 rounded-lg flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <div className="text-xs text-amber-700 space-y-1">
+                  <strong className="block text-amber-800 font-semibold">Important Action Notice:</strong>
+                  <p>
+                    Proceeding will permanently delete this old peer from your NetBird console, severing its existing connection. The wizard will then create a fresh setup key for your new device.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-4 pt-4 border-t border-border">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setStep("info");
+                    setExistingPeerFound(null);
+                  }}
+                  className="flex-1 cursor-pointer"
+                  disabled={isDeletingDuplicate}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleConfirmReplace}
+                  className="flex-1 bg-alert hover:bg-alert/90 text-white cursor-pointer gap-2 font-semibold"
+                  disabled={isDeletingDuplicate}
+                >
+                  {isDeletingDuplicate ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Deleting Old Peer...
+                    </>
+                  ) : (
+                    <>
+                      Confirm & Replace Peer
+                      <Trash2 className="w-4 h-4" />
+                    </>
+                  )}
+                </Button>
+              </div>
             </CardContent>
           </Card>
         )}

@@ -13,6 +13,7 @@ import { areNotificationsEnabled, setNotificationsEnabled, isElectron } from "@/
 import { NetBirdApiSettings } from "@/components/NetBirdApiSettings";
 import { clearAllSites } from "@/lib/use-sites";
 import { TelegramSettings } from "@/components/TelegramSettings";
+import { areIcmpChecksEnabled, setIcmpChecksEnabled } from "@/lib/health-check";
 import { auth, onAuthStateChanged, signOut, type User } from "@/lib/firebase";
 import { getUserPreferences, saveUserPreferences } from "@/lib/firebase-store";
 import { loadPeerStatusHistory } from "@/lib/peer-status-history";
@@ -57,6 +58,7 @@ function SettingsPage() {
   const queryClient = useQueryClient();
   const [alertSounds, setAlertSounds] = useState(false);
   const [notifications, setNotifications] = useState(false);
+  const [icmpChecks, setIcmpChecks] = useState(false);
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
   const [updateStatus, setUpdateStatus] = useState<{
     checking: boolean;
@@ -70,12 +72,13 @@ function SettingsPage() {
 
   useEffect(() => {
     const loadPreferences = async () => {
-      const user = auth.currentUser;
-      if (!user) return;
-
       // Load from local storage first (for speed)
       setAlertSounds(areAlertSoundsEnabled());
       setNotifications(areNotificationsEnabled());
+      setIcmpChecks(areIcmpChecksEnabled());
+
+      const user = auth.currentUser;
+      if (!user) return;
 
       // Then sync with Firestore
       try {
@@ -144,6 +147,16 @@ function SettingsPage() {
         console.error("Failed to save preferences to Firestore:", error);
       }
     }
+  };
+
+  const handleToggleIcmpChecks = () => {
+    const newValue = !icmpChecks;
+    setIcmpChecks(newValue);
+    setIcmpChecksEnabled(newValue);
+    
+    // Invalidate and refetch peers immediately to update status representation
+    queryClient.invalidateQueries({ queryKey: ["netbird", "peers"] });
+    toast.success(newValue ? "ICMP Ping Checks Enabled" : "ICMP Ping Checks Disabled");
   };
 
 
@@ -395,6 +408,35 @@ function SettingsPage() {
                 </button>
               </div>
             )}
+          </div>
+        </div>
+
+        {/* Network Status Checks */}
+        <div className="mb-8 border border-border bg-panel p-6">
+          <h2 className="mb-4 font-mono text-[11px] font-bold uppercase tracking-widest text-dim">
+            Network Status Checks
+          </h2>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-mono text-[10px] text-dim">
+                  Enable real-time ICMP ping checks
+                </p>
+                <p className="font-mono text-[10px] text-dim/60">
+                  Combine NetBird mesh connectivity with ping waves to determine online status (Disabled by default)
+                </p>
+              </div>
+              <button
+                onClick={handleToggleIcmpChecks}
+                className={`border px-4 py-2 font-mono text-[11px] uppercase tracking-widest transition-colors ${
+                  icmpChecks
+                    ? "border-phosphor/40 bg-phosphor/10 text-phosphor hover:bg-phosphor/20"
+                    : "border-border text-dim hover:text-foreground"
+                }`}
+              >
+                {icmpChecks ? "● Enabled" : "○ Disabled"}
+              </button>
+            </div>
           </div>
         </div>
 

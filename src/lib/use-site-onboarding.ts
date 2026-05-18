@@ -56,6 +56,7 @@ export function useSiteOnboarding({
         os: p.os,
         version: p.version,
         groups: p.groups,
+        setupKeyId: p.setupKeyId,
       })),
       existingSites,
       pendingSites,

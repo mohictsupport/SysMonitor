@@ -37,6 +37,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Health checks (TCP port checks run in main process)
   healthBatchCheck: (data) => ipcRenderer.invoke('health-batch-check', data),
 
+  // ICMP Ping checks
+  pingCheck: (options) => ipcRenderer.invoke('ping-check', options),
+  pingBatchCheck: (options) => ipcRenderer.invoke('ping-batch-check', options),
+
   // HTTP probe (bypasses CSP via main process)
   httpProbe: (url) => ipcRenderer.invoke('http-probe', url),
 

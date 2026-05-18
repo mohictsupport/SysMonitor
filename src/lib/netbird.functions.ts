@@ -16,6 +16,7 @@ interface NetbirdPeer {
   country_code?: string;
   city_name?: string;
   approval_required?: boolean;
+  setup_key_id?: string;
 }
 
 export interface NetbirdPeerLite {
@@ -29,6 +30,7 @@ export interface NetbirdPeerLite {
   version: string;
   region: string;
   groups: string[];
+  setupKeyId?: string;
 }
 
 export interface ProbeResult {
@@ -143,6 +145,7 @@ function mapPeer(p: NetbirdPeer): NetbirdPeerLite {
     version: p.version || "—",
     region,
     groups: groupNames,
+    setupKeyId: p.setup_key_id,
   };
 }
 
@@ -218,6 +221,35 @@ export async function updateNetbirdPeer(
     return { success: true };
   } catch (err) {
     console.error("NetBird update peer failed", err);
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Unknown error",
+    };
+  }
+}
+
+export async function deleteNetbirdPeer(
+  peerId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const headers = await authHeaders();
+    const res = await fetch(`${NETBIRD_BASE}/peers/${peerId}`, {
+      method: "DELETE",
+      headers,
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      console.error("NetBird delete peer error", res.status, text);
+      return {
+        success: false,
+        error: `Failed to delete peer: ${res.status} ${text.slice(0, 200)}`,
+      };
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error("NetBird delete peer failed", err);
     return {
       success: false,
       error: err instanceof Error ? err.message : "Unknown error",

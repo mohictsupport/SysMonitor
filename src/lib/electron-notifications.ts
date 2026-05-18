@@ -655,6 +655,30 @@ declare global {
         messageId?: number;
         error?: string;
       }>;
+      // ICMP Ping checks
+      pingCheck: (options: {
+        host: string;
+        count?: number;
+        timeoutMs?: number;
+      }) => Promise<{
+        ok: boolean;
+        latencyMs: number;
+        packetLoss: number;
+        detail: string;
+      }>;
+      pingBatchCheck: (options: {
+        sites: Array<{ id: string; hostname: string; netbirdIp?: string }>;
+        count?: number;
+        timeoutMs?: number;
+        concurrency?: number;
+      }) => Promise<
+        Array<{
+          id: string;
+          ok: boolean;
+          latencyMs: number;
+          packetLoss: number;
+        }>
+      >;
       // HTTP probe (bypasses CSP via main process)
       httpProbe: (url: string) => Promise<{
         success: boolean;

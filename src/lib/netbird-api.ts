@@ -98,21 +98,22 @@ export interface CreateSetupKeyRequest {
 
 export async function createSetupKey(
   nameOrRequest: string | CreateSetupKeyRequest,
-): Promise<string> {
-  const name = typeof nameOrRequest === "string" ? nameOrRequest : nameOrRequest.name;
+): Promise<SetupKey> {
+  const req = typeof nameOrRequest === "string" ? { name: nameOrRequest } : nameOrRequest;
 
-  const response = await apiRequest<{ key: string }>("/setup-keys", {
+  const response = await apiRequest<SetupKey>("/setup-keys", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      name: name,
-      type: "one-off",
-      expires_in: 3600, // 1 hour
+      name: req.name,
+      type: req.type || "one-off",
+      expires_in: req.expires_in || 3600, // 1 hour
+      auto_groups: req.auto_groups,
     }),
   });
-  return response.key;
+  return response;
 }
 
 export async function deleteSetupKey(keyId: string): Promise<void> {
@@ -306,6 +307,12 @@ export async function checkProvisioningStatus(
 
 // ===== PEER MANAGEMENT =====
 
+export async function deletePeer(peerId: string): Promise<void> {
+  await apiRequest(`/peers/${peerId}`, {
+    method: "DELETE",
+  });
+}
+
 export async function updateNetbirdPeer({
   peerId,
   name,
@@ -376,6 +383,7 @@ export default {
   listSetupKeys,
   listPeers,
   getPeer,
+  deletePeer,
   listGroups,
   generateInstallCommand,
   generatePfSenseInstallScript,

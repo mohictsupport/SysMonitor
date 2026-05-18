@@ -1,11 +1,11 @@
 import { createLazyFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { TopNav } from "@/components/TopNav";
 import { OSIcon } from "@/components/OSIcon";
 import { useNetbirdSites } from "@/lib/use-netbird";
 import { ApiKeyGate } from "@/components/ApiKeyGate";
 import { useHasApiKey } from "@/lib/auth-utils";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogHeader } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import {
   Monitor,
@@ -21,8 +21,14 @@ import {
   Laptop,
   X,
   MapPin,
+  Trash2,
+  AlertTriangle,
+  Loader2,
 } from "lucide-react";
 import { formatTimeAgo } from "@/lib/utils";
+import { useQueryClient } from "@tanstack/react-query";
+import { deleteNetbirdPeer } from "@/lib/netbird.functions";
+import { toast } from "sonner";
 
 export const Route = createLazyFileRoute("/devices")({
   component: DevicesPage,
@@ -331,7 +337,6 @@ function DevicesPage() {
   );
 }
 
-// Device Detail Modal
 export function DeviceDetailModal({
   device,
   open,
@@ -343,6 +348,10 @@ export function DeviceDetailModal({
   onClose: () => void;
   allSites?: NetBirdSite[];
 }) {
+  const queryClient = useQueryClient();
+  const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   // Find all peer info for this device - prioritize fresh data from allSites
   const peer = useMemo(() => {
     if (!device) return null;
@@ -355,6 +364,14 @@ export function DeviceDetailModal({
     // Return match if found (fresh data), otherwise fall back to device prop
     return match || device;
   }, [device, allSites]);
+
+  // Reset deletion states when device/modal opens
+  useEffect(() => {
+    if (open) {
+      setIsConfirmDeleteOpen(false);
+      setIsDeleting(false);
+    }
+  }, [open, device]);
 
   // Safe values that work even when device is null
   // Note: use netbirdConnected from API/site data, fall back to connected for compatibility
@@ -478,11 +495,93 @@ export function DeviceDetailModal({
                     </div>
                   </div>
                 </div>
+
+                <div className="border border-red-500/20 bg-red-500/5 p-4 rounded-lg">
+                  <h4 className="text-sm font-medium text-red-500 uppercase tracking-wide flex items-center gap-1.5 mb-2">
+                    <AlertTriangle className="w-4 h-4" />
+                    Danger Zone
+                  </h4>
+                  <p className="text-xs text-dim leading-relaxed">
+                    Permanently delete this device from the NetBird network. This stops connection status freezes but severs the connection.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setIsConfirmDeleteOpen(true)}
+                    className="mt-3 w-full border border-red-500/40 bg-red-500/10 px-3 py-2 font-mono text-[10px] uppercase tracking-widest text-red-500 hover:bg-red-500/20 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Delete Device Peer
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         </DialogContent>
-    </Dialog>
+
+        {/* Deletion confirmation dialog */}
+        <Dialog open={isConfirmDeleteOpen} onOpenChange={(open) => !open && !isDeleting && setIsConfirmDeleteOpen(false)}>
+          <DialogContent className="max-w-md bg-panel border-border">
+            <DialogHeader>
+              <DialogTitle className="sr-only">Confirm NetBird Peer Deletion</DialogTitle>
+            </DialogHeader>
+            <div className="flex flex-col items-center text-center pt-4 pb-2">
+              <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center mb-4">
+                <AlertTriangle className="w-6 h-6 text-red-500" />
+              </div>
+              <h3 className="font-medium text-foreground mb-2">Delete Device Peer?</h3>
+              <p className="text-sm text-dim mb-6">
+                Are you sure you want to permanently delete the peer <strong className="text-foreground">{device.name}</strong> from NetBird Cloud? This will immediately disconnect the device and cannot be undone.
+              </p>
+              <div className="flex items-center gap-3 w-full">
+                <button
+                  type="button"
+                  onClick={() => setIsConfirmDeleteOpen(false)}
+                  className="flex-1 border border-border bg-panel px-4 py-2 font-mono text-[11px] uppercase tracking-widest text-dim transition-colors hover:text-foreground cursor-pointer"
+                  disabled={isDeleting}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setIsDeleting(true);
+                    const deletingToast = toast.loading(`Deleting peer "${device.name}" from NetBird...`);
+                    try {
+                      // Note: device.id corresponds to peer id in NetBird API
+                      const res = await deleteNetbirdPeer(device.id);
+                      if (res.success) {
+                        toast.success(`Device peer "${device.name}" successfully deleted from NetBird Cloud.`);
+                        queryClient.invalidateQueries({ queryKey: ["netbird", "peers"] });
+                        setIsConfirmDeleteOpen(false);
+                        onClose();
+                      } else {
+                        toast.error(`Deletion failed: ${res.error || "Unknown error"}`);
+                      }
+                    } catch (err) {
+                      console.error(err);
+                      toast.error("Failed to delete peer from NetBird");
+                    } finally {
+                      toast.dismiss(deletingToast);
+                      setIsDeleting(false);
+                    }
+                  }}
+                  className="flex-1 bg-red-500 hover:bg-red-600 px-4 py-2 font-mono text-[11px] uppercase tracking-widest text-white transition-colors cursor-pointer flex items-center justify-center gap-2"
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    "Delete Peer"
+                  )}
+                </button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </Dialog>
   );
 }
 

@@ -2,6 +2,7 @@ import { useMemo, useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { listNetbirdPeers, type NetbirdPeerLite } from "./netbird.functions";
 import { recordStateChange, calculateUptime, loadHistory, type UptimeHistory } from "./uptime-history";
+import { pingBatchCheck, areIcmpChecksEnabled } from "./health-check";
 import type { Site, SiteStatus } from "./sites-data";
 import { collection, onSnapshot, getFirestore, query } from "firebase/firestore";
 import { useFirebase } from "./firebase";
@@ -137,8 +138,8 @@ export function peerToSite(peer: NetbirdPeerLite, history?: UptimeHistory): Site
     history: flatHistory(),
     checks: [
       {
-        type: "icmp",
-        label: "NetBird Peer",
+        type: "tcp",
+        label: "NetBird Connection",
         ok: peer.connected,
         detail: peer.connected
           ? `Connected · ${peer.os} ${peer.version}`
@@ -405,6 +406,71 @@ export function useNetbirdPeers() {
 
 export function useNetbirdSites() {
   const q = useNetbirdPeers();
+  const [icmpEnabled, setIcmpEnabled] = useState(() => areIcmpChecksEnabled());
+  const [pingResults, setPingResults] = useState<Record<string, { ok: boolean; latencyMs: number; packetLoss: number }>>(() => {
+    // Load from cache to prevent flicker on initial load
+    if (typeof window === "undefined") return {};
+    try {
+      const saved = localStorage.getItem("sysmonitor_ping_results");
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  // Keep icmpEnabled state in sync with localStorage whenever peers list refreshes
+  useEffect(() => {
+    setIcmpEnabled(areIcmpChecksEnabled());
+  }, [q.data?.peers]);
+
+  // Persist ping results to avoid "flicker" on reload
+  useEffect(() => {
+    localStorage.setItem("sysmonitor_ping_results", JSON.stringify(pingResults));
+  }, [pingResults]);
+
+  // Background ping task
+  useEffect(() => {
+    const peers = q.data?.peers;
+    if (!peers || peers.length === 0 || !icmpEnabled) {
+      // Clear ping results if ICMP checks are disabled
+      if (!icmpEnabled && Object.keys(pingResults).length > 0) {
+        setPingResults({});
+      }
+      return;
+    }
+
+    const runPingCheck = async () => {
+      // Only ping peers that are "connected" in NetBird and not service peers
+      const activePeers = peers.filter(p => p.connected && !isServicePeer(p));
+      if (activePeers.length === 0) return;
+
+      console.log(`[Ping] Starting wave for ${activePeers.length} peers...`);
+      try {
+        const results = await pingBatchCheck(activePeers.map(p => ({
+          id: p.id,
+          hostname: p.hostname,
+          netbirdIp: p.netbirdIp
+        } as Site)));
+
+        const resultMap: Record<string, { ok: boolean; latencyMs: number; packetLoss: number }> = {};
+        results.forEach(r => {
+          resultMap[r.id] = { ok: r.ok, latencyMs: r.latencyMs, packetLoss: r.packetLoss };
+        });
+
+        setPingResults(prev => ({ ...prev, ...resultMap }));
+        console.log(`[Ping] Wave complete, updated ${results.length} results`);
+      } catch (err) {
+        console.error("[Ping] Wave failed:", err);
+      }
+    };
+
+    // Initial check
+    runPingCheck();
+
+    // Periodic check every 60 seconds (much faster than NetBird sync)
+    const interval = setInterval(runPingCheck, 60_000);
+    return () => clearInterval(interval);
+  }, [q.data?.peers, icmpEnabled]);
 
   const sites: Site[] = useMemo(() => {
     const peers = q.data?.peers ?? [];
@@ -412,9 +478,48 @@ export function useNetbirdSites() {
     
     const history = loadHistory();
     return peers
-      .map((peer) => peerToSite(peer, history))
+      .map((peer) => {
+        const site = peerToSite(peer, history);
+        
+        // ONLY perform combined ping check status updates if ICMP checks are enabled
+        if (icmpEnabled) {
+          const ping = pingResults[peer.id];
+          
+          if (ping) {
+            // Update site with real ping results
+            site.latencyMs = ping.latencyMs;
+            site.packetLoss = ping.packetLoss;
+            
+            // Combined status logic: If NetBird is online but Ping fails, mark as offline
+            if (site.status === "online" && !ping.ok) {
+              site.status = "offline";
+              site.netbirdConnected = false; // Update this for consistency across Devices/Tunnels pages
+            }
+            
+            // Update checks array with separate line items
+            site.checks = [
+              {
+                type: "tcp",
+                label: "NetBird Connection",
+                ok: peer.connected,
+                detail: peer.connected ? "Connected to mesh" : "Disconnected from mesh"
+              },
+              {
+                type: "icmp",
+                label: "Real-time Ping",
+                ok: ping.ok,
+                detail: ping.ok 
+                  ? `${ping.latencyMs}ms · ${ping.packetLoss}% loss` 
+                  : `Unreachable · ${ping.packetLoss}% loss`
+              }
+            ];
+          }
+        }
+        
+        return site;
+      })
       .filter((site) => !isServicePeer(site));
-  }, [q.data?.peers]);
+  }, [q.data?.peers, pingResults, icmpEnabled]);
 
   // If the query has data but also an error (from cache fallback), expose the error
   const error = q.error || (q.data?.error ? new Error(q.data.error) : null);

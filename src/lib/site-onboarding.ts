@@ -16,6 +16,7 @@ export interface PendingSite {
   status: "pending" | "approved" | "rejected" | "provisioning";
   groups: string[];
   setupKey?: string;
+  setupKeyId?: string;
   provisioningLocation?: string;
   provisioningCreatedAt?: number;
 }
@@ -50,6 +51,7 @@ export function addPendingSite(data: {
   name: string;
   location: string;
   setupKey: string;
+  setupKeyId?: string;
   status?: "pending" | "provisioning";
   createdAt?: number;
 }): PendingSite {
@@ -67,6 +69,7 @@ export function addPendingSite(data: {
     status: data.status || "provisioning",
     groups: [],
     setupKey: data.setupKey,
+    setupKeyId: data.setupKeyId,
     provisioningLocation: data.location,
     provisioningCreatedAt: data.createdAt || Date.now(),
   };
@@ -115,6 +118,7 @@ export function detectNewPeers(
     os: string;
     version: string;
     groups: string[];
+    setupKeyId?: string;
   }>,
   existingSites: Site[],
   pendingSites: PendingSite[],
@@ -124,10 +128,14 @@ export function detectNewPeers(
 
   const newPeers: PendingSite[] = [];
 
-  // First, check if any new peers match provisioning sites (by hostname)
+  // First, check if any new peers match provisioning sites (by setupKeyId or hostname)
   for (const peer of netbirdPeers) {
     const provisioningMatch = pendingSites.find(
-      (p) => p.status === "provisioning" && p.hostname === peer.name,
+      (p) =>
+        p.status === "provisioning" &&
+        ((p.setupKeyId && peer.setupKeyId && p.setupKeyId === peer.setupKeyId) ||
+          p.hostname.toLowerCase() === peer.name.toLowerCase() ||
+          p.hostname.toLowerCase() === peer.hostname.toLowerCase()),
     );
 
     if (provisioningMatch) {
@@ -156,7 +164,11 @@ export function detectNewPeers(
 
     // Skip if it's a provisioning match (already handled above)
     const isProvisioningMatch = pendingSites.some(
-      (p) => p.status === "provisioning" && p.hostname === peer.name,
+      (p) =>
+        p.status === "provisioning" &&
+        ((p.setupKeyId && peer.setupKeyId && p.setupKeyId === peer.setupKeyId) ||
+          p.hostname.toLowerCase() === peer.name.toLowerCase() ||
+          p.hostname.toLowerCase() === peer.hostname.toLowerCase()),
     );
     if (isProvisioningMatch) continue;
 
@@ -171,6 +183,7 @@ export function detectNewPeers(
       detectedAt: Date.now(),
       status: "pending",
       groups: peer.groups,
+      setupKeyId: peer.setupKeyId,
     });
   }
 

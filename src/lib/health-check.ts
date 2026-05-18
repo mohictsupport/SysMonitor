@@ -120,3 +120,40 @@ export async function batchHealthCheck(
     },
   };
 }
+
+/**
+ * Performs a batch ICMP ping check on multiple sites
+ */
+export async function pingBatchCheck(sites: Site[], options: { count?: number; timeoutMs?: number; concurrency?: number } = {}) {
+  if (typeof window === "undefined" || !window.electronAPI?.pingBatchCheck) {
+    return [];
+  }
+
+  return window.electronAPI.pingBatchCheck({
+    sites: sites.map(s => ({ id: s.id, hostname: s.hostname, netbirdIp: s.netbirdIp })),
+    count: options.count,
+    timeoutMs: options.timeoutMs,
+    concurrency: options.concurrency
+  });
+}
+
+// Storage helpers for ICMP Ping status checking configuration
+const ICMP_CHECKS_ENABLED_KEY = "sysmonitor.icmpChecksEnabled";
+
+export function areIcmpChecksEnabled(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return localStorage.getItem(ICMP_CHECKS_ENABLED_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+export function setIcmpChecksEnabled(enabled: boolean): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(ICMP_CHECKS_ENABLED_KEY, enabled ? "true" : "false");
+  } catch (error) {
+    console.error("Failed to write ICMP setting to localStorage:", error);
+  }
+}
