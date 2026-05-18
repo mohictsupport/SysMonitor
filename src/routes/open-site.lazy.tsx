@@ -68,6 +68,8 @@ function OpenSitePage() {
   const [passwordInput, setPasswordInput] = useState("");
   const [autofillSuggested, setAutofillSuggested] = useState(false);
   const [hasAutofilled, setHasAutofilled] = useState(false);
+  const [detectedCreds, setDetectedCreds] = useState<SiteCredential | null>(null);
+  const [detectionType, setDetectionType] = useState<"save" | "update" | null>(null);
 
   const webviewRef = useRef<any>(null);
 
@@ -159,6 +161,70 @@ function OpenSitePage() {
       setCanGoBack(backAvail);
       setCanGoForward(fwdAvail);
       checkForAutofill();
+
+      // Inject robust credential detection script
+      const detectionScript = `
+        (() => {
+          const captureCreds = (username, password) => {
+            if (password) {
+              console.log("__sysmon_login__:" + JSON.stringify({ username, password }));
+            }
+          };
+
+          // 1. Intercept standard form submit events
+          document.addEventListener('submit', (e) => {
+            const form = e.target;
+            if (!form) return;
+            const passwordInput = form.querySelector('input[type="password"]');
+            if (passwordInput && passwordInput.value) {
+              const usernameInput = form.querySelector('input[type="text"], input[type="email"], input:not([type])');
+              const username = usernameInput ? usernameInput.value : '';
+              const password = passwordInput.value;
+              captureCreds(username, password);
+            }
+          });
+
+          // 2. Intercept click events on action/submit buttons
+          document.addEventListener('click', (e) => {
+            const button = e.target.closest('button, input[type="submit"], input[type="button"], a.btn');
+            if (button) {
+              // Wait slightly for input values to sync to DOM
+              setTimeout(() => {
+                const passwordInputs = Array.from(document.querySelectorAll('input[type="password"]'));
+                const activePassword = passwordInputs.find(i => i.value);
+                if (activePassword) {
+                  const usernameInputs = Array.from(document.querySelectorAll('input[type="text"], input[type="email"], input:not([type])'));
+                  const activeUsername = usernameInputs.find(i => i.value) || usernameInputs[0];
+                  const username = activeUsername ? activeUsername.value : '';
+                  const password = activePassword.value;
+                  captureCreds(username, password);
+                }
+              }, 100);
+            }
+          });
+
+          // 3. Intercept Enter key submissions
+          document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+              const activeElement = document.activeElement;
+              if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'BUTTON')) {
+                setTimeout(() => {
+                  const passwordInputs = Array.from(document.querySelectorAll('input[type="password"]'));
+                  const activePassword = passwordInputs.find(i => i.value);
+                  if (activePassword) {
+                    const usernameInputs = Array.from(document.querySelectorAll('input[type="text"], input[type="email"], input:not([type])'));
+                    const activeUsername = usernameInputs.find(i => i.value) || usernameInputs[0];
+                    const username = activeUsername ? activeUsername.value : '';
+                    const password = activePassword.value;
+                    captureCreds(username, password);
+                  }
+                }, 100);
+              }
+            }
+          });
+        })();
+      `;
+      webview.executeJavaScript(detectionScript).catch(() => {});
     };
 
     const handleNavigate = () => {
@@ -168,12 +234,28 @@ function OpenSitePage() {
       setCanGoForward(fwdAvail);
     };
 
+    const handleConsoleMessage = (e: any) => {
+      const message = e.message;
+      if (typeof message === "string" && message.startsWith("__sysmon_login__:")) {
+        try {
+          const credsJson = message.substring("__sysmon_login__:".length);
+          const parsedCreds: SiteCredential = JSON.parse(credsJson);
+          if (parsedCreds.username && parsedCreds.password) {
+            handleDetectedCredentials(parsedCreds);
+          }
+        } catch (err) {
+          console.error("Failed to parse guest login console message:", err);
+        }
+      }
+    };
+
     webview.addEventListener("did-start-loading", handleStartLoading);
     webview.addEventListener("did-stop-loading", handleStopLoading);
     webview.addEventListener("did-finish-load", handleFinishLoad);
     webview.addEventListener("dom-ready", handleDomReady);
     webview.addEventListener("did-navigate", handleNavigate);
     webview.addEventListener("did-navigate-in-page", handleNavigate);
+    webview.addEventListener("console-message", handleConsoleMessage);
 
     return () => {
       webview.removeEventListener("did-start-loading", handleStartLoading);
@@ -182,6 +264,7 @@ function OpenSitePage() {
       webview.removeEventListener("dom-ready", handleDomReady);
       webview.removeEventListener("did-navigate", handleNavigate);
       webview.removeEventListener("did-navigate-in-page", handleNavigate);
+      webview.removeEventListener("console-message", handleConsoleMessage);
     };
   }, [url, hasSavedCreds, hasAutofilled]);
 
@@ -205,6 +288,55 @@ function OpenSitePage() {
       setHasAutofilled(false);
       webview.reload();
     }
+  };
+
+  const handleDetectedCredentials = (parsedCreds: SiteCredential) => {
+    const saved = getSavedCredentials();
+    if (!saved || !saved.username || !saved.password) {
+      // Rule A: Completely new -> Ask to save
+      setDetectedCreds(parsedCreds);
+      setDetectionType("save");
+      setAutofillSuggested(false);
+    } else {
+      // Rule B: Slight difference -> Ask to update
+      if (parsedCreds.username !== saved.username || parsedCreds.password !== saved.password) {
+        setDetectedCreds(parsedCreds);
+        setDetectionType("update");
+        setAutofillSuggested(false);
+      }
+      // Rule C: Same as saved -> Do nothing!
+    }
+  };
+
+  const handleAcceptDetectedCredentials = () => {
+    if (!detectedCreds || !detectedCreds.username || !detectedCreds.password) return;
+
+    try {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(detectedCreds));
+      toast.success(
+        detectionType === "save"
+          ? "Saved admin credentials for Pfsense"
+          : "Updated admin credentials for Pfsense"
+      );
+      
+      // Sync form input state
+      setUsernameInput(detectedCreds.username);
+      setPasswordInput(detectedCreds.password);
+
+      // Clear detection states
+      setDetectedCreds(null);
+      setDetectionType(null);
+      
+      setHasAutofilled(true);
+      setAutofillSuggested(false);
+    } catch (e) {
+      toast.error("Failed to save credentials");
+    }
+  };
+
+  const handleIgnoreDetectedCredentials = () => {
+    setDetectedCreds(null);
+    setDetectionType(null);
   };
 
   // Save Credentials Click
@@ -512,6 +644,41 @@ function OpenSitePage() {
             </button>
             <button
               onClick={() => setAutofillSuggested(false)}
+              className="text-foreground/50 hover:text-foreground text-sm font-bold px-1"
+              title="Dismiss"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Slide-Down Glassmorphic Auto-detection Suggestion Banner */}
+      {detectedCreds && detectionType && (
+        <div className="bg-phosphor/10 border-b border-phosphor/20 backdrop-blur-md text-phosphor px-4 py-2.5 flex items-center justify-between text-xs font-mono shadow-md animate-in slide-in-from-top duration-300 flex-shrink-0">
+          <div className="flex items-center gap-2 truncate">
+            <Key className="h-4 w-4 shrink-0 animate-bounce" />
+            <span className="truncate">
+              {detectionType === "save" ? (
+                <>
+                  New admin credentials detected for <strong className="text-foreground">Pfsense</strong> (User: <span className="text-foreground font-semibold">{detectedCreds.username}</span>).
+                </>
+              ) : (
+                <>
+                  Different admin credentials detected for <strong className="text-foreground">Pfsense</strong> (User: <span className="text-foreground font-semibold">{detectedCreds.username}</span>).
+                </>
+              )}
+            </span>
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            <button
+              onClick={handleAcceptDetectedCredentials}
+              className="px-3 py-1 bg-phosphor hover:bg-phosphor/90 text-void font-bold text-[10px] uppercase tracking-wider rounded transition-colors shadow"
+            >
+              {detectionType === "save" ? "Save Credentials" : "Update Credentials"}
+            </button>
+            <button
+              onClick={handleIgnoreDetectedCredentials}
               className="text-foreground/50 hover:text-foreground text-sm font-bold px-1"
               title="Dismiss"
             >
