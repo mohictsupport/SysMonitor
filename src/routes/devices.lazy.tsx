@@ -29,6 +29,8 @@ import { formatTimeAgo } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { deleteNetbirdPeer } from "@/lib/netbird.functions";
 import { toast } from "sonner";
+import { AccessCodeModal } from "@/components/AccessCodeModal";
+import { useAccessKey } from "@/lib/use-access-key";
 
 export const Route = createLazyFileRoute("/devices")({
   component: DevicesPage,
@@ -351,6 +353,9 @@ export function DeviceDetailModal({
   const queryClient = useQueryClient();
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isAccessModalOpen, setIsAccessModalOpen] = useState(false);
+  const [accessError, setAccessError] = useState<string | null>(null);
+  const { verifyAccessKey } = useAccessKey();
 
   // Find all peer info for this device - prioritize fresh data from allSites
   const peer = useMemo(() => {
@@ -370,6 +375,8 @@ export function DeviceDetailModal({
     if (open) {
       setIsConfirmDeleteOpen(false);
       setIsDeleting(false);
+      setIsAccessModalOpen(false);
+      setAccessError(null);
     }
   }, [open, device]);
 
@@ -506,7 +513,10 @@ export function DeviceDetailModal({
                   </p>
                   <button
                     type="button"
-                    onClick={() => setIsConfirmDeleteOpen(true)}
+                    onClick={() => {
+                      setIsAccessModalOpen(true);
+                      setAccessError(null);
+                    }}
                     className="mt-3 w-full border border-red-500/40 bg-red-500/10 px-3 py-2 font-mono text-[10px] uppercase tracking-widest text-red-500 hover:bg-red-500/20 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -581,6 +591,27 @@ export function DeviceDetailModal({
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Access Code Modal */}
+        <AccessCodeModal
+          isOpen={isAccessModalOpen}
+          onClose={() => {
+            setIsAccessModalOpen(false);
+            setAccessError(null);
+          }}
+          onVerify={(password) => {
+            if (verifyAccessKey(password)) {
+              setIsAccessModalOpen(false);
+              setAccessError(null);
+              setIsConfirmDeleteOpen(true);
+            } else {
+              setAccessError("Incorrect access code");
+            }
+          }}
+          error={accessError}
+          title="Delete Device Peer - Access Required"
+          description="Please enter the access code to delete this device peer."
+        />
       </Dialog>
   );
 }

@@ -224,6 +224,9 @@ function SitesPage() {
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [siteToDelete, setSiteToDelete] = useState<Site | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleteAccessOpen, setIsDeleteAccessOpen] = useState(false);
+  const [deleteAccessError, setDeleteAccessError] = useState<string | null>(null);
+  const { verifyAccessKey } = useAccessKey();
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -499,7 +502,8 @@ function SitesPage() {
                 onDelete={(e) => {
                   e.stopPropagation();
                   setSiteToDelete(s);
-                  setIsDeleteModalOpen(true);
+                  setIsDeleteAccessOpen(true);
+                  setDeleteAccessError(null);
                 }}
               />
             ))}
@@ -515,6 +519,28 @@ function SitesPage() {
 
         {/* Add Site Modal */}
         <AddSiteModal isOpen={isAddSiteModalOpen} onClose={() => setIsAddSiteModalOpen(false)} />
+
+        {/* Access Code Modal for Deletion from Row */}
+        <AccessCodeModal
+          isOpen={isDeleteAccessOpen}
+          onClose={() => {
+            setIsDeleteAccessOpen(false);
+            setDeleteAccessError(null);
+            setSiteToDelete(null);
+          }}
+          onVerify={(password) => {
+            if (verifyAccessKey(password)) {
+              setIsDeleteAccessOpen(false);
+              setDeleteAccessError(null);
+              setIsDeleteModalOpen(true);
+            } else {
+              setDeleteAccessError("Incorrect access code");
+            }
+          }}
+          error={deleteAccessError}
+          title="Delete Site - Access Required"
+          description="Please enter the access code to delete this site."
+        />
 
         {/* Delete Confirmation Modal */}
         <DeleteConfirmModal
@@ -675,11 +701,12 @@ export function SiteDetailModal({
   const [isConfirmPeerDeleteOpen, setIsConfirmPeerDeleteOpen] = useState(false);
   const [isDeletingPeer, setIsDeletingPeer] = useState(false);
 
-  // Access code protection for opening site
+  // Access code protection
   const [isAccessModalOpen, setIsAccessModalOpen] = useState(false);
   const [accessError, setAccessError] = useState<string | null>(null);
   const [pendingSiteUrl, setPendingSiteUrl] = useState<string | null>(null);
   const [pendingSiteName, setPendingSiteName] = useState<string | null>(null);
+  const [pendingAction, setPendingAction] = useState<"open" | "delete" | null>(null);
   const { verifyAccessKey } = useAccessKey();
 
   // Reset edit state when site changes
@@ -690,6 +717,7 @@ export function SiteDetailModal({
     setProbeResult(null);
     setIsConfirmPeerDeleteOpen(false);
     setIsDeletingPeer(false);
+    setPendingAction(null);
   }, [site]);
 
   const updateMutation = useMutation({
@@ -808,6 +836,7 @@ export function SiteDetailModal({
             onClick={() => {
               setPendingSiteUrl(`http://${site.netbirdIp}`);
               setPendingSiteName(site.name || "Site Dashboard");
+              setPendingAction("open");
               setIsAccessModalOpen(true);
               setAccessError(null);
             }}
@@ -949,7 +978,11 @@ export function SiteDetailModal({
               </p>
               <button
                 type="button"
-                onClick={() => setIsConfirmPeerDeleteOpen(true)}
+                onClick={() => {
+                  setPendingAction("delete");
+                  setIsAccessModalOpen(true);
+                  setAccessError(null);
+                }}
                 className="mt-3 w-full border border-red-500/40 bg-red-500/10 px-3 py-2 font-mono text-[10px] uppercase tracking-widest text-red-500 hover:bg-red-500/20 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <Trash2 className="w-3.5 h-3.5" />
@@ -959,7 +992,7 @@ export function SiteDetailModal({
           </aside>
         </div>
 
-        {/* Access Code Modal for Open Site */}
+        {/* Access Code Modal */}
         <AccessCodeModal
           isOpen={isAccessModalOpen}
           onClose={() => {
@@ -967,28 +1000,32 @@ export function SiteDetailModal({
             setAccessError(null);
             setPendingSiteUrl(null);
             setPendingSiteName(null);
+            setPendingAction(null);
           }}
           onVerify={(password) => {
             if (verifyAccessKey(password)) {
               setIsAccessModalOpen(false);
               setAccessError(null);
-              if (pendingSiteUrl) {
+              if (pendingAction === "open" && pendingSiteUrl) {
                 const isHashRouting = typeof window !== "undefined" && (window.location.protocol === "file:" || window.location.hash.startsWith("#"));
                 const openUrl = isHashRouting
                   ? `#/open-site?url=${encodeURIComponent(pendingSiteUrl)}&name=${encodeURIComponent(pendingSiteName || "Site Dashboard")}`
                   : `/open-site?url=${encodeURIComponent(pendingSiteUrl)}&name=${encodeURIComponent(pendingSiteName || "Site Dashboard")}`;
                 
                 window.open(openUrl, "_blank", "width=1300,height=850,menubar=no,toolbar=no,location=no,status=no");
+              } else if (pendingAction === "delete") {
+                setIsConfirmPeerDeleteOpen(true);
               }
               setPendingSiteUrl(null);
               setPendingSiteName(null);
+              setPendingAction(null);
             } else {
               setAccessError("Incorrect access code");
             }
           }}
           error={accessError}
-          title="Open Site - Access Required"
-          description="Please enter the access code to open this site."
+          title={pendingAction === "delete" ? "Delete Peer - Access Required" : "Open Site - Access Required"}
+          description={pendingAction === "delete" ? "Please enter the access code to delete this peer." : "Please enter the access code to open this site."}
         />
 
         {/* Deletion confirmation dialog */}
