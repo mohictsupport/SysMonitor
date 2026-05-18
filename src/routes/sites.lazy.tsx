@@ -679,6 +679,7 @@ export function SiteDetailModal({
   const [isAccessModalOpen, setIsAccessModalOpen] = useState(false);
   const [accessError, setAccessError] = useState<string | null>(null);
   const [pendingSiteUrl, setPendingSiteUrl] = useState<string | null>(null);
+  const [pendingSiteName, setPendingSiteName] = useState<string | null>(null);
   const { verifyAccessKey } = useAccessKey();
 
   // Reset edit state when site changes
@@ -806,6 +807,7 @@ export function SiteDetailModal({
             type="button"
             onClick={() => {
               setPendingSiteUrl(`http://${site.netbirdIp}`);
+              setPendingSiteName(site.name || "Site Dashboard");
               setIsAccessModalOpen(true);
               setAccessError(null);
             }}
@@ -964,15 +966,22 @@ export function SiteDetailModal({
             setIsAccessModalOpen(false);
             setAccessError(null);
             setPendingSiteUrl(null);
+            setPendingSiteName(null);
           }}
           onVerify={(password) => {
             if (verifyAccessKey(password)) {
               setIsAccessModalOpen(false);
               setAccessError(null);
               if (pendingSiteUrl) {
-                window.open(pendingSiteUrl, "_blank", "noopener,noreferrer");
+                const isHashRouting = typeof window !== "undefined" && (window.location.protocol === "file:" || window.location.hash.startsWith("#"));
+                const openUrl = isHashRouting
+                  ? `#/open-site?url=${encodeURIComponent(pendingSiteUrl)}&name=${encodeURIComponent(pendingSiteName || "Site Dashboard")}`
+                  : `/open-site?url=${encodeURIComponent(pendingSiteUrl)}&name=${encodeURIComponent(pendingSiteName || "Site Dashboard")}`;
+                
+                window.open(openUrl, "_blank", "width=1300,height=850,menubar=no,toolbar=no,location=no,status=no");
               }
               setPendingSiteUrl(null);
+              setPendingSiteName(null);
             } else {
               setAccessError("Incorrect access code");
             }

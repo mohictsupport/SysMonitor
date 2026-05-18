@@ -58,13 +58,16 @@ function RootComponent() {
     }
   }, [router]);
 
+  const isOpenSiteRoute = router.state.location.pathname.startsWith("/open-site");
+  const showFooter = !isOpenSiteRoute;
+
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="flex min-h-screen flex-col">
-        <div className="flex-1">
+      <div className={isOpenSiteRoute ? "h-screen w-screen overflow-hidden flex flex-col" : "flex min-h-screen flex-col"}>
+        <div className={isOpenSiteRoute ? "flex-1 w-full relative min-h-0" : "flex-1"}>
           <Outlet />
         </div>
-        <AppFooter />
+        {showFooter && <AppFooter />}
       </div>
       <Toaster />
       <UpdateNotification />

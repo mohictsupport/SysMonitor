@@ -79,9 +79,27 @@ function createWindow() {
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.cjs'),
       backgroundThrottling: false, // Prevent sleeping when minimized
+      webviewTag: true,
     },
     titleBarStyle: 'hiddenInset',
     show: false, // Don't show until ready
+  });
+
+  // Ensure child windows created via window.open inherit webviewTag: true to render embedded portals
+  mainWindow.webContents.setWindowOpenHandler(() => {
+    return {
+      action: 'allow',
+      overrideBrowserWindowOptions: {
+        webPreferences: {
+          nodeIntegration: false,
+          contextIsolation: true,
+          preload: path.join(__dirname, 'preload.cjs'),
+          backgroundThrottling: false,
+          webviewTag: true,
+        },
+        autoHideMenuBar: true,
+      }
+    };
   });
 
   // Prevent background throttling - ensure timers and network keep running

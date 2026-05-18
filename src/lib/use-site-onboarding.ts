@@ -1,6 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 import type { Site } from "./sites-data";
-import { listNetbirdPeers, type NetbirdPeerLite } from "./netbird.functions";
+import { 
+  listNetbirdPeers, 
+  updateNetbirdPeer, 
+  listNetbirdGroups, 
+  createNetbirdGroup, 
+  type NetbirdPeerLite 
+} from "./netbird.functions";
 import {
   type PendingSite,
   loadPendingSites,
@@ -75,6 +81,40 @@ export function useSiteOnboarding({
           const { updatedPending: up, newSite } = approvePendingSite(peer, updatedPending);
           updatedPending = up;
           approvedSites.push(newSite);
+
+          // Asynchronously update name and assign group in the background
+          (async () => {
+            try {
+              let targetGroupIds: string[] = [];
+              if (peer.region && peer.region !== "UNKNOWN") {
+                const groupsResult = await listNetbirdGroups();
+                let regionGroup = groupsResult.groups?.find(
+                  (g: any) => g.name.toLowerCase() === peer.region.toLowerCase(),
+                );
+                let groupId = regionGroup?.id;
+
+                if (!groupId) {
+                  const createResult = await createNetbirdGroup({ name: peer.region });
+                  if (createResult.success && createResult.groupId) {
+                    groupId = createResult.groupId;
+                  }
+                }
+
+                if (groupId) {
+                  targetGroupIds.push(groupId);
+                }
+              }
+
+              await updateNetbirdPeer({
+                peerId: peer.id,
+                name: peer.name,
+                groups: targetGroupIds.length > 0 ? targetGroupIds : undefined,
+              });
+              console.log(`[Auto-Onboard] Successfully synchronized peer ${peer.id} with group and name on NetBird`);
+            } catch (err) {
+              console.error(`[Auto-Onboard] Background sync failed for peer ${peer.id}:`, err);
+            }
+          })();
         }
 
         setPendingSites(updatedPending);
@@ -90,9 +130,49 @@ export function useSiteOnboarding({
 
   // Approve a pending site
   const approveSite = useCallback(
-    (siteId: string) => {
+    async (siteId: string) => {
       const pending = pendingSites.find((p) => p.id === siteId);
       if (!pending) return null;
+
+      // Programmatically synchronize name and group to NetBird API on manual approval
+      try {
+        console.log(`[Onboarding] Approving and updating peer ${pending.id} to NetBird:`, { name: pending.name, region: pending.region });
+        let targetGroupIds: string[] = [];
+        
+        if (pending.region && pending.region !== "UNKNOWN") {
+          const groupsResult = await listNetbirdGroups();
+          let regionGroup = groupsResult.groups?.find(
+            (g: any) => g.name.toLowerCase() === pending.region.toLowerCase(),
+          );
+          let groupId = regionGroup?.id;
+
+          if (!groupId) {
+            console.log(`[Onboarding] Creating region group: ${pending.region}`);
+            const createResult = await createNetbirdGroup({ name: pending.region });
+            if (createResult.success && createResult.groupId) {
+              groupId = createResult.groupId;
+            }
+          }
+
+          if (groupId) {
+            targetGroupIds.push(groupId);
+          }
+        }
+
+        const updateRes = await updateNetbirdPeer({
+          peerId: pending.id,
+          name: pending.name,
+          groups: targetGroupIds.length > 0 ? targetGroupIds : undefined,
+        });
+
+        if (updateRes.success) {
+          console.log(`[Onboarding] Peer naming and region grouping updated on NetBird`);
+        } else {
+          console.warn(`[Onboarding] Peer updates partially failed on NetBird:`, updateRes.error);
+        }
+      } catch (err) {
+        console.error(`[Onboarding] Error synchronizing peer to NetBird during approval:`, err);
+      }
 
       const { updatedPending, newSite } = approvePendingSite(pending, pendingSites);
       setPendingSites(updatedPending);
